@@ -6,18 +6,23 @@ import (
 )
 
 const (
-	// WordBitCap is the maximum number of bits in a UMask.
-	WordBitCap = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
-
-	// MaxWord is the maximum uint.
-	WordMax = 1<<WordBitCap - 1
+	// BitCap is the maximum number of bits in a UMask.
+	BitCap = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
 
 	// Max is the maximum UMask.
-	Max = UMask(WordMax)
+	Max UMask = 1<<BitCap - 1
 )
 
 // UMask is either a 32 or 64-bit bitmask.
 type UMask uint
+
+func One() UMask {
+	return 1
+}
+
+func Zero() UMask {
+	return 0
+}
 
 // ------------------------------------------------------------------------------------
 // Logic functionality TODO: Add N-variants
@@ -33,6 +38,16 @@ func (a UMask) AndNot(b UMask) UMask {
 	return a &^ b
 }
 
+// NAnd ...
+func (a UMask) NAnd(b UMask) UMask {
+	return ^(a & b)
+}
+
+// NOr ...
+func (a UMask) NOr(b UMask) UMask {
+	return ^(a | b)
+}
+
 // Not inverts a bitmask. This is equivalent to calling UMax.Xor(a).
 func (a UMask) Not() UMask {
 	return ^a
@@ -41,6 +56,11 @@ func (a UMask) Not() UMask {
 // Or returns a bitmask with the bits set in either a or b.
 func (a UMask) Or(b UMask) UMask {
 	return a | b
+}
+
+// XNOr ...
+func (a UMask) XNOr(b UMask) UMask {
+	return ^(a ^ b)
 }
 
 // XOr returns the bits of a and b that are set, but not simultaneously set in both a and b.
@@ -60,11 +80,6 @@ func (a UMask) Base(n int) string {
 // Bin returns a string representing a bitmask in binary.
 func (a UMask) Bin() string {
 	return strconv.FormatUint(uint64(a), 2)
-}
-
-// BitCap ...
-func (a UMask) BitCap() int {
-	return WordBitCap
 }
 
 // Clr returns a bitmask with the bits of each given bitmask b cleared from a.
@@ -121,13 +136,13 @@ func (a UMask) MasksBit(bit int) bool {
 
 // NextBit ...
 func (a UMask) NextBit(bit int) int {
-	if bit++; bit < WordBitCap {
+	if bit++; bit < BitCap {
 		if a = a >> bit << bit; 0 < a {
 			return bits.TrailingZeros(uint(a))
 		}
 	}
 
-	return WordBitCap
+	return BitCap
 }
 
 // Oct returns a string representing a bitmask in decimal.

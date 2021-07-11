@@ -224,8 +224,7 @@ func TestPrimes(t *testing.T) {
 			return false
 		}
 
-		r := int(math.Sqrt(float64(n)))
-		for d := 2; d <= r; d++ {
+		for d, r := 2, int(math.Sqrt(float64(n))); d <= r; d++ {
 			if n%d == 0 {
 				return false
 			}

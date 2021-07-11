@@ -3,14 +3,18 @@ package bitmask
 import "math/bits"
 
 const (
-	// WordBitCap is the maximum number of bits in a UMask.
-	WordBitCap = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
+	// BitCap is the maximum number of bits in a uint.
+	BitCap = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
 
-	// MaxWord is the maximum uint.
-	WordMax = 1<<WordBitCap - 1
+	// Max is the maximum uint.
+	Max = 1<<BitCap - 1
 )
 
-// And returns the intersection of a and b.
+// ------------------------------------------------------------------------------------
+// Logic functionality
+// ------------------------------------------------------------------------------------
+
+// And ...
 func And(a, b uint) uint {
 	return a & b
 }
@@ -20,7 +24,67 @@ func AndNot(a, b uint) uint {
 	return a &^ b
 }
 
-// Masks determines if a masks b.
+// NAnd ...
+func NAnd(a, b uint) uint {
+	return ^(a & b)
+}
+
+// NOr ...
+func NOr(a, b uint) uint {
+	return ^(a | b)
+}
+
+// Not ...
+func Not(a uint) uint {
+	return ^a
+}
+
+// Or ...
+func Or(a, b uint) uint {
+	return a | b
+}
+
+// XNOr ...
+func XNOr(a, b uint) uint {
+	return ^(a ^ b)
+}
+
+// XOr ...
+func XOr(a, b uint) uint {
+	return a ^ b
+}
+
+// ------------------------------------------------------------------------------------
+// Additional functionality
+// ------------------------------------------------------------------------------------
+
+// Clr ...
+func Clr(a, b uint) uint {
+	return a &^ b
+}
+
+// ClrBit ...
+func ClrBit(a uint, bit int) uint {
+	return a &^ (1 << bit)
+}
+
+// ClrBits ...
+func ClrBits(a uint, bits ...int) uint {
+	if 0 < a {
+		for i := 0; i < len(bits); i++ {
+			a &^= 1 << bits[i]
+		}
+	}
+
+	return a
+}
+
+// Count ...
+func Count(a uint) int {
+	return bits.OnesCount(a)
+}
+
+// Masks ...
 func Masks(a, b uint) bool {
 	return a&b == b
 }
@@ -31,43 +95,44 @@ func MasksBit(a uint, bit int) bool {
 	return a&b == b
 }
 
-// NAnd returns the difference of a-b.
-func NAnd(a, b uint) uint {
-	return a &^ b
-}
-
 // NextBit ...
 func NextBit(a uint, bit int) int {
-	if bit++; bit < WordBitCap {
+	if bit++; bit < BitCap {
 		if a = a >> bit << bit; 0 < a {
 			return bits.TrailingZeros(a)
 		}
 	}
 
-	return WordBitCap
+	return BitCap
 }
 
-// NOr ...
-func NOr(a, b uint) uint {
-	return ^(a | b)
+// PrevBit ...
+func PrevBit(a uint, bit int) int {
+	if -1 < bit {
+		r := BitCap - bit
+		if a = a << r >> r; 0 < a {
+			return bits.LeadingZeros(a)
+		}
+	}
+
+	return -1
 }
 
-// Not returns the inversion of a.
-func Not(a uint) uint {
-	return ^a
-}
-
-// Or returns the union of a and b.
-func Or(a, b uint) uint {
+// Set ...
+func Set(a, b uint) uint {
 	return a | b
 }
 
-// XNOr ...
-func XNOr(a, b uint) uint {
-	return ^(a ^ b)
+// SetBit ...
+func SetBit(a uint, bit int) uint {
+	return a | (1 << bit)
 }
 
-// XOr returns the symmetric difference of a and b.
-func XOr(a, b uint) uint {
-	return a ^ b
+// SetBits ...
+func SetBits(a uint, bits ...int) uint {
+	for i := 0; i < len(bits); i++ {
+		a |= 1 << bits[i]
+	}
+
+	return a
 }

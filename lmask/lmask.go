@@ -29,6 +29,11 @@ type LMask struct {
 // Constructors
 // ------------------------------------------------------------------------------------
 
+// FromBits ...
+func FromBits(bitCap int, bits ...int) *LMask {
+	return Zero(bitCap).SetBits(bits...)
+}
+
 // FromWords returns a bitmask set with a given list of uints. The bit capacity will be the number of words times the WordBitCap (a multiple of 32 or 64).
 func FromWords(words ...uint) *LMask {
 	return &LMask{bitCap: WordBitCap * len(words), words: append(make([]uint, 0, len(words)), words...)}
