@@ -97,6 +97,7 @@ func MasksBit(a uint, bit int) bool {
 
 // NextBit ...
 func NextBit(a uint, bit int) int {
+	// TODO: Compare to a branchless variant of this function
 	if bit++; bit < BitCap {
 		if a = a >> bit << bit; 0 < a {
 			return bits.TrailingZeros(a)
@@ -108,14 +109,8 @@ func NextBit(a uint, bit int) int {
 
 // PrevBit ...
 func PrevBit(a uint, bit int) int {
-	if -1 < bit {
-		r := BitCap - bit
-		if a = a << r >> r; 0 < a {
-			return bits.LeadingZeros(a)
-		}
-	}
-
-	return -1
+	r := BitCap - clamp(bit, 0, BitCap)
+	return BitCap - bits.LeadingZeros(a<<r>>r) - 1
 }
 
 // Set ...
@@ -135,4 +130,34 @@ func SetBits(a uint, bits ...int) uint {
 	}
 
 	return a
+}
+
+// max returns the maximum of two integers.
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+
+	return a
+}
+
+// min returns the minimum of two integers.
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+// clamp returns min if a < min, max if max < a, or otherwise a.
+func clamp(a, min, max int) int {
+	switch {
+	case a < min:
+		return min
+	case max < a:
+		return max
+	default:
+		return a
+	}
 }
