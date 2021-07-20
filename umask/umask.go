@@ -11,18 +11,16 @@ const (
 
 	// Max is the maximum UMask.
 	Max UMask = 1<<BitCap - 1
+
+	// One is equivalent to UMask(1) or Zero.SetBit(0).
+	One UMask = 1
+
+	// Zero is equivalent to UMask(0).
+	Zero UMask = 0
 )
 
 // UMask is either a 32 or 64-bit bitmask.
 type UMask uint
-
-func One() UMask {
-	return 1
-}
-
-func Zero() UMask {
-	return 0
-}
 
 // ------------------------------------------------------------------------------------
 // Logic functionality TODO: Add N-variants
@@ -134,15 +132,10 @@ func (a UMask) MasksBit(bit int) bool {
 	return a&b == b
 }
 
-// NextBit ...
+// NextBit returns the next set bit. If there is no next set bit, then the bit capacity is returned.
 func (a UMask) NextBit(bit int) int {
-	if bit++; bit < BitCap {
-		if a = a >> bit << bit; 0 < a {
-			return bits.TrailingZeros(uint(a))
-		}
-	}
-
-	return BitCap
+	bit = clamp(bit+1, 0, BitCap)
+	return bits.TrailingZeros(uint(a) >> bit << bit)
 }
 
 // Oct returns a string representing a bitmask in decimal.
@@ -150,9 +143,20 @@ func (a UMask) Oct() string {
 	return strconv.FormatUint(uint64(a), 8)
 }
 
+// PrevBit returns the previous set bit. If there is no previous set bit, then -1 is returned.
+func (a UMask) PrevBit(bit int) int {
+	bit = BitCap - clamp(bit, 0, BitCap)
+	return BitCap - bits.LeadingZeros(uint(a)<<bit>>bit) - 1
+}
+
 // Set returns a Bitmask with bits set in each b. This is equivalent to repeatedly calling a.Or(b) for each b.
 func (a UMask) Set(b UMask) UMask {
 	return a.Or(b)
+}
+
+// SetBit ...
+func (a UMask) SetBit(bit int) UMask {
+	return a | (1 << bit)
 }
 
 // SetBits ...
@@ -179,4 +183,16 @@ func (a UMask) ShiftRight(bits int) UMask {
 // String returns a string representing a bitmask in decimal.
 func (a UMask) String() string {
 	return strconv.FormatUint(uint64(a), 10)
+}
+
+// clamp returns min if a < min, max if max < a, or otherwise a.
+func clamp(a, min, max int) int {
+	switch {
+	case a < min:
+		return min
+	case max < a:
+		return max
+	default:
+		return a
+	}
 }

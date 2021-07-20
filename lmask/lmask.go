@@ -16,8 +16,8 @@ const (
 	WordMax = 1<<WordBitCap - 1
 )
 
-// errBitCap indicates bitmask operations can only be applied when the bit capacities are equal.
-var errBitCap = errors.New("undefined on unequal bit capacities")
+// errUneqBitCap indicates bitmask operations can only be applied when the bit capacities are equal.
+var errUneqBitCap = errors.New("undefined on unequal bit capacities")
 
 // LMask is an arbitrarily sized bitmask.
 type LMask struct {
@@ -66,7 +66,7 @@ func Zero(bitCap int) *LMask {
 // And sets each bit in a if the bit in b is also set. Otherwise, the bit in a is unset.
 func (a *LMask) And(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -79,7 +79,7 @@ func (a *LMask) And(b *LMask) *LMask {
 // AndNot sets each bit in a if the bit in a is set and the bit in b is not set. Otherwise, the bit in a is unset.
 func (a *LMask) AndNot(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -92,7 +92,7 @@ func (a *LMask) AndNot(b *LMask) *LMask {
 // NAnd sets each bit in a if the bit is not set in both a and b. Otherwise, the bit in a is unset.
 func (a *LMask) NAnd(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -105,7 +105,7 @@ func (a *LMask) NAnd(b *LMask) *LMask {
 // NOr ...
 func (a *LMask) NOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -127,7 +127,7 @@ func (a *LMask) Not() *LMask {
 // Or sets each bit in a if either bit in a or b is set. Otherwise, the bit in a is unset.
 func (a *LMask) Or(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -140,7 +140,7 @@ func (a *LMask) Or(b *LMask) *LMask {
 // XNOr sets each bit in a if either both bits in a and b are set or unset. Otherwise, the bit in a is unset.
 func (a *LMask) XNOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -153,7 +153,7 @@ func (a *LMask) XNOr(b *LMask) *LMask {
 // XOr sets each bit in a if exactly one bit in a and b is set. Otherwise, the bit in a is unset.
 func (a *LMask) XOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errBitCap)
+		panic(errUneqBitCap)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -244,7 +244,7 @@ func (a *LMask) Equals(b *LMask) bool {
 func (a *LMask) Masks(b *LMask) bool {
 	if a != b {
 		if a.bitCap != b.bitCap {
-			panic(errBitCap)
+			panic(errUneqBitCap)
 		}
 
 		for i := 0; i < len(a.words); i++ {
@@ -265,8 +265,9 @@ func (a *LMask) MasksBit(bit int) bool {
 
 // NextBit returns the next set bit in a. If no set bit is next, then the bit capacity is returned.
 func (a *LMask) NextBit(bit int) int {
-	if bit++; bit < a.bitCap {
-		i, r := bit/WordBitCap, bit%WordBitCap
+	bit = clamp(bit+1, 0, a.bitCap)
+	if i := bit / WordBitCap; i < len(a.words) {
+		r := bit % WordBitCap
 		if w := a.words[i] >> r << r; w != 0 {
 			return bits.TrailingZeros(w) + i*WordBitCap
 		}
@@ -279,6 +280,27 @@ func (a *LMask) NextBit(bit int) int {
 	}
 
 	return a.bitCap
+}
+
+// PrevBit ...TODO
+func (a *LMask) PrevBit(bit int) int {
+	bit = clamp(bit, 0, a.bitCap)
+
+	i := bit / WordBitCap
+	if i < len(a.words) {
+		r := WordBitCap - bit%WordBitCap
+		if w := a.words[i] << r >> r; w != 0 {
+			return -bits.LeadingZeros(w) + (i+1)*WordBitCap - 1
+		}
+	}
+
+	for i--; 0 <= i; i-- {
+		if a.words[i] != 0 {
+			return -bits.LeadingZeros(a.words[i]) + (i+1)*WordBitCap - 1
+		}
+	}
+
+	return -1
 }
 
 // Set sets the bits of b in a.
@@ -392,6 +414,18 @@ func (a *LMask) Words() []uint {
 // ------------------------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------------------------
+
+// clamp returns a if n < a, b if b < n, or otherwise n.
+func clamp(n, a, b int) int {
+	switch {
+	case n < a:
+		return a
+	case b < n:
+		return b
+	default:
+		return n
+	}
+}
 
 // min returns the minimum value.
 func min(a, b int) int {

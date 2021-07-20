@@ -339,6 +339,36 @@ func TestPrevBit(t *testing.T) {
 			bit: BitCap,
 			exp: BitCap - 1,
 		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: -1,
+			exp: -1,
+		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: 0,
+			exp: -1,
+		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: 1,
+			exp: 0,
+		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: BitCap - 2,
+			exp: 0,
+		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: BitCap - 1,
+			exp: 0,
+		},
+		{
+			a:   1 | 1<<(BitCap-1),
+			bit: BitCap,
+			exp: BitCap - 1,
+		},
 	}
 
 	for _, test := range tests {

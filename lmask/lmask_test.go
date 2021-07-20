@@ -130,6 +130,65 @@ func TestAnd(t *testing.T) {
 	}
 }
 
+func TestNextPrevBit(t *testing.T) {
+	bitCap := WordBitCap << 1
+	tests := []LMask{
+		*Zero(bitCap),
+		*One(bitCap),
+		*Zero(bitCap).SetBits(0, bitCap-1), // End bits
+		*Zero(bitCap).SetBits(0, 2, 4, 6, 56, 58, 60, 62), // Some even bits
+		*Zero(bitCap).SetBits(1, 3, 5, 7, 57, 59, 61, 63), // Some odd bits
+		*Max(bitCap).ClrBits(0, 63),                       // Middle bits
+		*Max(bitCap),
+	}
+
+	for _, test := range tests {
+		for i := 0; i < test.bitCap; i++ {
+			if test.MasksBit(i) {
+				if rec := test.NextBit(i - 1); i != rec {
+					t.Errorf("\nexpected next bit to be %d\nreceived next bit %d\n", i, rec)
+				}
+
+				if rec := test.PrevBit(i + 1); i != rec {
+					t.Errorf("\nexpected previous bit to be %d\nreceived next bit %d\n", i, rec)
+				}
+			} else {
+				if rec := test.NextBit(i - 1); i == rec {
+					t.Errorf("\nexpected next bit to NOT be %d\nreceived next bit %d\n", i, rec)
+				}
+
+				if rec := test.PrevBit(i + 1); i == rec {
+					t.Errorf("\nexpected previous bit to NOT be %d\nreceived next bit %d\n", i, rec)
+				}
+			}
+		}
+
+		{
+			exp := test.Copy()
+			rec := Zero(test.bitCap)
+			for i := test.NextBit(-1); i < test.bitCap; i = test.NextBit(i) {
+				rec.SetBit(i)
+			}
+
+			if !exp.Equals(rec) {
+				t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
+			}
+		}
+
+		{
+			exp := Zero(test.bitCap)
+			rec := test.Copy()
+			for i := test.PrevBit(test.bitCap); -1 < i; i = test.PrevBit(i) {
+				rec.ClrBit(i)
+			}
+
+			if !exp.Equals(rec) {
+				t.Errorf("\nexpected %v\nreceived %v\n", exp, rec)
+			}
+		}
+	}
+}
+
 func TestNot(t *testing.T) {
 	tests := []struct {
 		a, exp *LMask
@@ -255,12 +314,22 @@ func TestPrimes(t *testing.T) {
 }
 
 func TestSquares(t *testing.T) {
-	bitCap := WordBitCap << 2
-	squares := Zero(bitCap)
-	for i := 0; i < bitCap; i++ {
-		if i2 := i * i; i2 < bitCap {
-			squares = squares.SetBits(i2)
-		}
+	// bitCap := WordBitCap << 2
+	// for i := 0; i < bitCap; i++ {
+	// 	if i2 := i * i; i2 < bitCap {
+	// 		squares = squares.SetBits(i2)
+	// 	}
+	// }
+	var (
+		bitCap     = WordBitCap << 2
+		sqrtBitCap = int(math.Sqrt(float64(bitCap)))
+		i1         = sqrtBitCap + int(math.Log2(float64(sqrtBitCap)))<<1 - 1
+		squares    = One(bitCap)
+	)
+
+	for i := 1; i <= i1; i += 2 {
+		// 1+3+5+...+(2n-1) is odd for n in N
+		squares.SetBit(squares.PrevBit(squares.bitCap) + i)
 	}
 
 	isSquare := func(n int) bool {
@@ -268,7 +337,7 @@ func TestSquares(t *testing.T) {
 		return n == r*r
 	}
 
-	for n := 0; n < bitCap; n++ {
+	for n := 0; n < squares.bitCap; n++ {
 		if isSquare(n) {
 			if !squares.MasksBit(n) {
 				t.Errorf("\nexpected %d to be masked as square\n", n)
