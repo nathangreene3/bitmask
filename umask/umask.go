@@ -111,9 +111,19 @@ func (a UMask) Dec() string {
 	return strconv.FormatUint(uint64(a), 10)
 }
 
+// Fmt ...
+func (a UMask) Fmt(base int) string {
+	return strconv.FormatUint(uint64(a), base)
+}
+
 // Hex returns a string representing a bitmask in hexidecimal.
 func (a UMask) Hex() string {
 	return strconv.FormatUint(uint64(a), 16)
+}
+
+// Left returns a Bitmask shifted to the left n times.
+func (a UMask) Left(bits int) UMask {
+	return a << bits
 }
 
 // Len ...
@@ -170,13 +180,8 @@ func (a UMask) SetBits(bits ...int) UMask {
 	return a
 }
 
-// Lsh returns a Bitmask shifted to the left n times.
-func (a UMask) ShiftLeft(bits int) UMask {
-	return a << bits
-}
-
-// ShiftRight returns a Bitmask shifted to the right n times.
-func (a UMask) ShiftRight(bits int) UMask {
+// Right returns a Bitmask shifted to the right n times.
+func (a UMask) Right(bits int) UMask {
 	return a >> bits
 }
 

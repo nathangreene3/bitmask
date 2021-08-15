@@ -1,11 +1,8 @@
 package lmask
 
 import (
-	"errors"
-	"fmt"
+	"math/big"
 	"math/bits"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -16,27 +13,49 @@ const (
 	WordMax = 1<<WordBitCap - 1
 )
 
-// errUneqBitCap indicates bitmask operations can only be applied when the bit capacities are equal.
-var errUneqBitCap = errors.New("undefined on unequal bit capacities")
-
 // LMask is an arbitrarily sized bitmask.
 type LMask struct {
 	bitCap int
 	words  []uint
 }
 
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 // Constructors
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
-// FromBits ...
+// FromBigInt returns a bitmask from a given big integer. The bit
+// capacity will be a multiple of the word bit capacity.
+func FromBigInt(n *big.Int) *LMask {
+	bigWords := n.Bits()
+	words := make([]uint, 0, len(bigWords))
+	for i := 0; i < len(bigWords); i++ {
+		words = append(words, uint(bigWords[i]))
+	}
+
+	return &LMask{bitCap: len(words) * WordBitCap, words: words}
+}
+
+// FromBits returns a bitmask of a given bit capacity with and
+// specified bits set.
 func FromBits(bitCap int, bits ...int) *LMask {
 	return Zero(bitCap).SetBits(bits...)
 }
 
-// FromWords returns a bitmask set with a given list of uints. The bit capacity will be the number of words times the WordBitCap (a multiple of 32 or 64).
+// FromJSON returns a bitmask decoded from a json-encoded string. The
+// bit capacity will be a multiple of the word bit capacity.
+func FromJSON(s string) (*LMask, error) {
+	var a LMask
+	if err := a.UnmarshalText([]byte(s)); err != nil {
+		return nil, err
+	}
+
+	return &a, nil
+}
+
+// FromWords returns a bitmask set with a given list of uints. The bit
+// capacity will be the number of words times the word bit capacity.
 func FromWords(words ...uint) *LMask {
-	return &LMask{bitCap: WordBitCap * len(words), words: append(make([]uint, 0, len(words)), words...)}
+	return &LMask{bitCap: len(words) * WordBitCap, words: append(make([]uint, 0, len(words)), words...)}
 }
 
 // Max returns a bitmask with all bits set.
@@ -44,7 +63,7 @@ func Max(bitCap int) *LMask {
 	return Zero(bitCap).Not()
 }
 
-// One returns a bitmask with bit zero set. This is equivalent to the number one in binary.
+// One returns a bitmask with bit zero set.
 func One(bitCap int) *LMask {
 	return Zero(bitCap).SetBit(0)
 }
@@ -59,14 +78,19 @@ func Zero(bitCap int) *LMask {
 	return &LMask{bitCap: bitCap, words: make([]uint, n)}
 }
 
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 // Logic functionality
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
-// And sets each bit in a if the bit in b is also set. Otherwise, the bit in a is unset.
+// And sets each bit in a if the bit in b is also set. Otherwise, the
+// bit in a is unset.
 func (a *LMask) And(b *LMask) *LMask {
+	if a == b {
+		return a
+	}
+
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -76,10 +100,11 @@ func (a *LMask) And(b *LMask) *LMask {
 	return a
 }
 
-// AndNot sets each bit in a if the bit in a is set and the bit in b is not set. Otherwise, the bit in a is unset.
+// AndNot sets each bit in a if the bit in a is set and the bit in b
+// is not set. Otherwise, the bit in a is unset.
 func (a *LMask) AndNot(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -89,10 +114,11 @@ func (a *LMask) AndNot(b *LMask) *LMask {
 	return a
 }
 
-// NAnd sets each bit in a if the bit is not set in both a and b. Otherwise, the bit in a is unset.
+// NAnd sets each bit in a if the bit is not set in both a and b.
+// Otherwise, the bit in a is unset.
 func (a *LMask) NAnd(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -102,10 +128,11 @@ func (a *LMask) NAnd(b *LMask) *LMask {
 	return a
 }
 
-// NOr ...
+// NOr sets each bit in a if the bit in a and b is unset. Otherwise,
+// the bit is unset.
 func (a *LMask) NOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -124,10 +151,11 @@ func (a *LMask) Not() *LMask {
 	return a.trim()
 }
 
-// Or sets each bit in a if either bit in a or b is set. Otherwise, the bit in a is unset.
+// Or sets each bit in a if either bit in a or b is set. Otherwise,
+// the bit in a is unset.
 func (a *LMask) Or(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -137,10 +165,11 @@ func (a *LMask) Or(b *LMask) *LMask {
 	return a
 }
 
-// XNOr sets each bit in a if either both bits in a and b are set or unset. Otherwise, the bit in a is unset.
+// XNOr sets each bit in a if either both bits in a and b are set or
+// unset. Otherwise, the bit in a is unset.
 func (a *LMask) XNOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -150,10 +179,11 @@ func (a *LMask) XNOr(b *LMask) *LMask {
 	return a
 }
 
-// XOr sets each bit in a if exactly one bit in a and b is set. Otherwise, the bit in a is unset.
+// XOr sets each bit in a if exactly one bit in a and b is set.
+// Otherwise, the bit in a is unset.
 func (a *LMask) XOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic(errUneqBitCap)
+		panic("undefined on unequal bit capacities")
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -163,24 +193,39 @@ func (a *LMask) XOr(b *LMask) *LMask {
 	return a
 }
 
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 // Additional functionality
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
-// Bin returns the bits of the bitmask. The left-most bit is the leading bit.
-func (a *LMask) Bin() string {
-	var sb strings.Builder
-	sb.Grow(a.bitCap)
-	for i := len(a.words) - 1; 0 <= i; i-- {
-		sb.WriteString(strconv.FormatUint(uint64(a.words[i]), 2))
+// BigInt returns an equivalent big integer.
+func (a *LMask) BigInt() *big.Int {
+	if a == nil {
+		return nil
 	}
 
-	return sb.String()
+	bigWords := make([]big.Word, 0, len(a.words))
+	for i := 0; i < len(a.words); i++ {
+		bigWords = append(bigWords, big.Word(a.words[i]))
+	}
+
+	return big.NewInt(0).SetBits(bigWords)
 }
 
 // BitCap returns the bit capacity.
 func (a *LMask) BitCap() int {
 	return a.bitCap
+}
+
+// BitLen returns the minimum number of bits required to represent a
+// bitmask exactly.
+func (a *LMask) BitLen() int {
+	for i := len(a.words) - 1; 0 <= i; i-- {
+		if 0 < a.words[i] {
+			return bits.Len(a.words[i]) + i*WordBitCap
+		}
+	}
+
+	return 0
 }
 
 // Clr unsets each bit in a that is set in b.
@@ -190,8 +235,9 @@ func (a *LMask) Clr(b *LMask) *LMask {
 
 // ClrBit unsets a bit.
 func (a *LMask) ClrBit(bit int) *LMask {
-	if a.bitCap != 0 {
-		a.words[bit/WordBitCap] &^= 1 << (bit % WordBitCap)
+	if 0 < a.bitCap {
+		k := bit / WordBitCap
+		a.words[k] &^= 1 << (bit - k*WordBitCap)
 	}
 
 	return a
@@ -199,9 +245,10 @@ func (a *LMask) ClrBit(bit int) *LMask {
 
 // ClrBits unsets several bits.
 func (a *LMask) ClrBits(bits ...int) *LMask {
-	if a.bitCap != 0 {
+	if 0 < a.bitCap {
 		for i := 0; i < len(bits); i++ {
-			a.words[bits[i]/WordBitCap] &^= 1 << (bits[i] % WordBitCap)
+			k := bits[i] / WordBitCap
+			a.words[k] &^= 1 << (bits[i] - k*WordBitCap)
 		}
 	}
 
@@ -223,34 +270,94 @@ func (a *LMask) Count() int {
 	return c
 }
 
-// Equal determines if two bitmasks are equal. Equality is defined as having the same bit capacity and the same bits set.
+// Equal determines if two bitmasks are equal. Equality is defined as
+// having the same bit capacity and the same bits set.
 func (a *LMask) Equals(b *LMask) bool {
-	if a != b {
-		if a.bitCap != b.bitCap {
-			return false
-		}
+	if a == b {
+		return true
+	}
 
-		for i := 0; i < len(a.words); i++ {
-			if a.words[i] != b.words[i] {
-				return false
-			}
+	if a.bitCap != b.bitCap {
+		return false
+	}
+
+	for i := 0; i < len(a.words); i++ {
+		if a.words[i] != b.words[i] {
+			return false
 		}
 	}
 
 	return true
 }
 
-// Masks determines if a masks b.
-func (a *LMask) Masks(b *LMask) bool {
-	if a != b {
-		if a.bitCap != b.bitCap {
-			panic(errUneqBitCap)
+// Fmt returns a string formatted as the integer represented by a
+// bitmask in a given base. This supports bases on range [2, 62].
+func (a *LMask) Fmt(base int) string {
+	return a.BigInt().Text(base)
+}
+
+// JSON returns a json-encoded string representing a bitmask.
+func (a *LMask) JSON() string {
+	b, _ := a.MarshalText()
+	return string(b)
+}
+
+// Left shifts all set bits by a given amount. That is, each set bit i
+// will be unset and bit i+bits will be set.
+func (a *LMask) Left(bits int) *LMask {
+	if 0 < a.bitCap {
+		k := bits / WordBitCap
+		if 0 < k {
+			copy(a.words[:len(a.words)-k], a.words[k:])
+			for i := 0; i < k; i++ {
+				a.words[i] = 0
+			}
 		}
 
-		for i := 0; i < len(a.words); i++ {
-			if a.words[i]&b.words[i] != b.words[i] {
-				return false
+		if r := bits - k*WordBitCap; 0 < r {
+			d := WordBitCap - r
+			h0 := a.words[k] >> d
+			a.words[k] <<= r
+			for k++; k < len(a.words); k++ {
+				h1 := a.words[k] >> d
+				a.words[k] = (a.words[k] << r) | h0
+				h0 = h1
 			}
+		}
+	}
+
+	return a.trim()
+}
+
+// MarshalText returns text representing a bitmask.
+func (a *LMask) MarshalText() ([]byte, error) {
+	if a == nil {
+		// TODO: big.Int.MarshalText returns <nil>. Determine if this
+		// should do the same.
+		return []byte("null"), nil
+	}
+
+	return []byte(a.Fmt(10)), nil
+}
+
+// MarshalJSON returns json-encoded bytes representing a bitmask.
+func (a *LMask) MarshalJSON() ([]byte, error) {
+	return a.MarshalText()
+}
+
+// Masks determines if a masks b.
+func (a *LMask) Masks(b *LMask) bool {
+	if a == b {
+		return true
+	}
+
+	if a.bitCap != b.bitCap {
+		panic("undefined on unequal bit capacities")
+	}
+
+	for i := 0; i < len(a.words); i++ {
+		if a.words[i]&b.words[i] != b.words[i] {
+			return false
 		}
 	}
 
@@ -259,22 +366,24 @@ func (a *LMask) Masks(b *LMask) bool {
 
 // MasksBit determines if a bit is set in a.
 func (a *LMask) MasksBit(bit int) bool {
-	c := uint(1 << (bit % WordBitCap))
-	return a.words[bit/WordBitCap]&c == c
+	k := bit / WordBitCap
+	c := uint(1 << (bit - k*WordBitCap))
+	return a.words[k]&c == c
 }
 
-// NextBit returns the next set bit in a. If no set bit is next, then the bit capacity is returned.
+// NextBit returns the next set bit in a. If no set bit is next, then
+// the bit capacity is returned.
 func (a *LMask) NextBit(bit int) int {
 	bit = clamp(bit+1, 0, a.bitCap)
-	if i := bit / WordBitCap; i < len(a.words) {
-		r := bit % WordBitCap
-		if w := a.words[i] >> r << r; w != 0 {
-			return bits.TrailingZeros(w) + i*WordBitCap
+	if k := bit / WordBitCap; k < len(a.words) {
+		r := bit - k*WordBitCap
+		if w := a.words[k] >> r << r; 0 < w {
+			return bits.TrailingZeros(w) + k*WordBitCap
 		}
 
-		for i++; i < len(a.words); i++ {
-			if a.words[i] != 0 {
-				return min(bits.TrailingZeros(a.words[i])+i*WordBitCap, a.bitCap)
+		for k++; k < len(a.words); k++ {
+			if 0 < a.words[k] {
+				return min(bits.TrailingZeros(a.words[k])+k*WordBitCap, a.bitCap)
 			}
 		}
 	}
@@ -282,20 +391,20 @@ func (a *LMask) NextBit(bit int) int {
 	return a.bitCap
 }
 
-// PrevBit ...TODO
+// PrevBit returns the previous set bit in a. If no set bit is next,
+// then -1 is returned.
 func (a *LMask) PrevBit(bit int) int {
 	bit = clamp(bit, 0, a.bitCap)
-
 	i := bit / WordBitCap
 	if i < len(a.words) {
-		r := WordBitCap - bit%WordBitCap
-		if w := a.words[i] << r >> r; w != 0 {
+		r := (i+1)*WordBitCap - bit
+		if w := a.words[i] << r >> r; 0 < w {
 			return -bits.LeadingZeros(w) + (i+1)*WordBitCap - 1
 		}
 	}
 
 	for i--; 0 <= i; i-- {
-		if a.words[i] != 0 {
+		if 0 < a.words[i] {
 			return -bits.LeadingZeros(a.words[i]) + (i+1)*WordBitCap - 1
 		}
 	}
@@ -303,18 +412,49 @@ func (a *LMask) PrevBit(bit int) int {
 	return -1
 }
 
-// Set sets the bits of b in a.
+// Right shifts all set bits by a given amount. That is, each set bit i
+// will be unset and bit i-bits will be set.
+func (a *LMask) Right(bits int) *LMask {
+	if 0 < a.bitCap {
+		k := bits / WordBitCap
+		if 0 < k {
+			copy(a.words[k:], a.words[:len(a.words)-k])
+			for i := len(a.words) - k; i < len(a.words); i++ {
+				a.words[i] = 0
+			}
+		}
+
+		if r := bits - k*WordBitCap; 0 < r {
+			d := WordBitCap - r
+			h0 := a.words[len(a.words)-1] << d
+			a.words[len(a.words)-1] >>= r
+			for i := len(a.words) - 2; k <= i; i-- {
+				h1 := a.words[i] << d
+				a.words[i] = (a.words[i] >> r) | h0
+				h0 = h1
+			}
+		}
+	}
+
+	return a.trim()
+}
+
+// Set sets the bits of b in a. Any bits already set in a will remain
+// set.
 func (a *LMask) Set(b *LMask) *LMask {
 	return a.Or(b)
 }
 
 // SetBit sets a bit in a.
 func (a *LMask) SetBit(bit int) *LMask {
-	a.words[bit/WordBitCap] |= 1 << (bit % WordBitCap)
+	k := bit / WordBitCap
+	a.words[k] |= 1 << (bit - k*WordBitCap)
 	return a.trim()
 }
 
-// SetBitCap sets the bit capacity. If the bit capacity is decreasing, any higher-order bits will be lost. If the bit capacity is increasing, new bits will be unset.
+// SetBitCap sets the bit capacity. If the bit capacity is decreasing,
+// any higher-order bits will be lost. If the bit capacity is
+// increasing, new bits will be unset.
 func (a *LMask) SetBitCap(bitCap int) *LMask {
 	if a.bitCap == bitCap {
 		return a
@@ -326,84 +466,67 @@ func (a *LMask) SetBitCap(bitCap int) *LMask {
 		n++
 	}
 
-	switch {
-	case n < len(a.words):
+	if n < len(a.words) {
 		a.words = a.words[:n]
 		return a.trim()
-	case len(a.words) < n:
+	}
+
+	if len(a.words) < n {
 		words := make([]uint, n)
 		copy(words[:len(a.words)], a.words)
 		a.words = words
 		return a
-	default:
-		return a.trim()
 	}
+
+	return a.trim()
 }
 
 // SetBits sets several bits.
 func (a *LMask) SetBits(bits ...int) *LMask {
 	for i := 0; i < len(bits); i++ {
-		a.words[bits[i]/WordBitCap] |= 1 << (bits[i] % WordBitCap)
+		k := bits[i] / WordBitCap
+		a.words[k] |= 1 << (bits[i] - k*WordBitCap)
 	}
 
 	return a.trim()
 }
 
-// ShiftLeft ...
-func (a *LMask) ShiftLeft(bits int) *LMask {
-	if a.bitCap != 0 {
-		k := bits % WordBitCap / a.bitCap
-		if 0 < k {
-			copy(a.words[:len(a.words)-k], a.words[k:])
-			for i := 0; i < k; i++ {
-				a.words[i] = 0
-			}
-		}
-
-		if r := bits % WordBitCap; 0 < r {
-			d := WordBitCap - r
-			h0 := a.words[k] >> d
-			a.words[k] <<= r
-			for i := k + 1; i < len(a.words); i++ {
-				h1 := a.words[i] >> d
-				a.words[i] = (a.words[i] << r) | h0
-				h0 = h1
-			}
-		}
-	}
-
-	return a.trim()
-}
-
-// ShiftRight ...
-func (a *LMask) ShiftRight(bits int) *LMask {
-	if a.bitCap != 0 {
-		k := bits / a.bitCap
-		if 0 < k {
-			copy(a.words[k:], a.words[:len(a.words)-k])
-			for i := len(a.words) - k; i < len(a.words); i++ {
-				a.words[i] = 0
-			}
-		}
-
-		if r := bits % WordBitCap; 0 < r {
-			d := WordBitCap - r
-			h0 := a.words[k] << d
-			a.words[k] >>= r
-			for i := k - 1; 0 <= i; i-- {
-				h1 := a.words[i] << d
-				a.words[i] = (a.words[i] >> r) | h0
-				h0 = h1
-			}
-		}
-	}
-
-	return a.trim()
-}
-
-// String returns a string-representation of a bitmask formatted as [0, 0, ..., 0]
+// String returns the base-10 integer representation of a bitmask.
 func (a *LMask) String() string {
-	return fmt.Sprint(a.words)
+	return a.Fmt(10)
+}
+
+// UnmarshalJSON decodes json-encoded text into a bitmask. If the text
+// is "null", no action is taken and no error is returned. Otherwise,
+// the text is assumed to be the base-10 integer representation of a
+// bitmask. The bit capacity will be a multiple of the word bit
+// capacity.
+func (a *LMask) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	return a.UnmarshalText(b)
+}
+
+// UnmarshalText decodes text into a bitmask. The text is assumed to be
+// the base-10 integer representation of a bitmask. The bit capacity
+// will be a multiple of the word bit capacity.
+func (a *LMask) UnmarshalText(b []byte) error {
+	n := big.NewInt(0)
+	if err := n.UnmarshalJSON(b); err != nil {
+		return err
+	}
+
+	bigWords := n.Bits()
+	words := make([]uint, 0, len(bigWords))
+	for len(words) < len(bigWords) {
+		words = append(words, uint(bigWords[len(words)]))
+	}
+
+	a.bitCap = len(words) * WordBitCap
+	a.words = words
+	return nil
 }
 
 // Words returns a copy of the words in the bitmask.
@@ -411,20 +534,21 @@ func (a *LMask) Words() []uint {
 	return append(make([]uint, 0, len(a.words)), a.words...)
 }
 
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 // Helpers
-// ------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
 // clamp returns a if n < a, b if b < n, or otherwise n.
 func clamp(n, a, b int) int {
-	switch {
-	case n < a:
+	if n < a {
 		return a
-	case b < n:
-		return b
-	default:
-		return n
 	}
+
+	if b < n {
+		return b
+	}
+
+	return n
 }
 
 // min returns the minimum value.
@@ -436,10 +560,10 @@ func min(a, b int) int {
 	return b
 }
 
-// trim unsets any leading bits outside the range [0, bitCap).
+// trim unsets any leading bits greater than the bitmask's bit capacity.
 func (a *LMask) trim() *LMask {
-	if len(a.words) != 0 {
-		if r := a.bitCap % WordBitCap; r != 0 {
+	if 0 < len(a.words) {
+		if r := a.bitCap - a.bitCap/WordBitCap*WordBitCap; 0 < r {
 			a.words[len(a.words)-1] &^= WordMax << r
 		}
 	}

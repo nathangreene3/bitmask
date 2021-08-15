@@ -3,6 +3,7 @@ package bitmask
 import (
 	"math"
 	"math/bits"
+	"strconv"
 	"testing"
 )
 
@@ -379,82 +380,121 @@ func TestPrevBit(t *testing.T) {
 }
 
 func TestMaxInt(t *testing.T) {
-	intMax := 1<<(BitCap-1) - 1
-	intMin := -intMax
+	// intMax := 1<<(BitCap-1) - 1
+	// intMin := -intMax
 
-	max0 := func(a, b int) int {
-		if a < b {
-			return b
+	// max0 := func(a, b int) int {
+	// 	if a < b {
+	// 		return b
+	// 	}
+
+	// 	return a
+	// }
+
+	// max1 := func(a, b int) int {
+	// 	// Source: https://web.archive.org/web/20130821015554/http://bob.allegronetwork.com/prog/tricks.html
+	// 	a -= b
+	// 	a &= ^a >> (BitCap - 1)
+	// 	a += b
+	// 	return a
+	// }
+
+	// tests := []struct {
+	// 	a, b, exp int
+	// }{
+	// 	{
+	// 		a:   0,
+	// 		b:   0,
+	// 		exp: 0,
+	// 	},
+	// 	{
+	// 		a:   0,
+	// 		b:   1,
+	// 		exp: 1,
+	// 	},
+	// 	{
+	// 		a:   1,
+	// 		b:   0,
+	// 		exp: 1,
+	// 	},
+	// 	{
+	// 		a:   0,
+	// 		b:   1 << (BitCap - 2),
+	// 		exp: 1 << (BitCap - 2),
+	// 	},
+	// 	{
+	// 		a:   1 << (BitCap - 2),
+	// 		b:   0,
+	// 		exp: 1 << (BitCap - 2),
+	// 	},
+	// 	{
+	// 		a:   0,
+	// 		b:   intMin,
+	// 		exp: 0,
+	// 	},
+	// 	{
+	// 		a:   intMin,
+	// 		b:   0,
+	// 		exp: 0,
+	// 	},
+	// 	{
+	// 		a:   intMin,
+	// 		b:   intMax,
+	// 		exp: intMax,
+	// 	},
+	// }
+
+	// for _, test := range tests {
+	// 	if rec := max0(test.a, test.b); test.exp != rec {
+	// 		t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	// 	}
+
+	// 	if rec := max1(test.a, test.b); test.exp != rec {
+	// 		t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	// 	}
+	// }
+}
+
+func BenchmarkDivAlgVsMod(b *testing.B) {
+	const (
+		UIntSize = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
+		UIntMax  = 1<<UIntSize - 1
+	)
+
+	for p := 1; p < UIntSize; p++ {
+		for m, n := 1<<p-1, 1; n < UIntSize; n++ {
+			benchmarkDivAlg(b, m, n)
 		}
-
-		return a
 	}
 
-	max1 := func(a, b int) int {
-		// Source: https://web.archive.org/web/20130821015554/http://bob.allegronetwork.com/prog/tricks.html
-		a -= b
-		a &= ^a >> (BitCap - 1)
-		a += b
-		return a
-	}
-
-	tests := []struct {
-		a, b, exp int
-	}{
-		{
-			a:   0,
-			b:   0,
-			exp: 0,
-		},
-		{
-			a:   0,
-			b:   1,
-			exp: 1,
-		},
-		{
-			a:   1,
-			b:   0,
-			exp: 1,
-		},
-		{
-			a:   0,
-			b:   1 << (BitCap - 2),
-			exp: 1 << (BitCap - 2),
-		},
-		{
-			a:   1 << (BitCap - 2),
-			b:   0,
-			exp: 1 << (BitCap - 2),
-		},
-		{
-			a:   0,
-			b:   intMin,
-			exp: 0,
-		},
-		{
-			a:   intMin,
-			b:   0,
-			exp: 0,
-		},
-		{
-			a:   intMin,
-			b:   intMax,
-			exp: intMax,
-		},
-		{
-			a:   intMax,
-			b:   intMin,
-			exp: intMax,
-		},
-	}
-
-	for _, test := range tests {
-		if rec := max0(test.a, test.b); test.exp != rec {
-			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
-		}
-
-		if rec := max1(test.a, test.b); test.exp != rec {
-			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	for p := 1; p < UIntSize; p++ {
+		for m, n := 1<<p-1, 1; n < UIntSize; n++ {
+			benchmarkMod(b, m, n)
 		}
 	}
+}
+
+func benchmarkDivAlg(b *testing.B, m, n int) bool {
+	f := func(b0 *testing.B) {
+		var k, r int
+		for i := 0; i < b0.N; i++ {
+			k = m / n
+			r = m - k*n
+		}
+		_, _ = k, r
+	}
+
+	return b.Run("DivAlg:("+strconv.Itoa(m)+","+strconv.Itoa(n)+")", f)
+}
+
+func benchmarkMod(b *testing.B, m, n int) bool {
+	f := func(b0 *testing.B) {
+		var r int
+		for i := 0; i < b0.N; i++ {
+			r = m % n
+		}
+		_ = r
+	}
+
+	return b.Run("Mod:("+strconv.Itoa(m)+","+strconv.Itoa(n)+")", f)
 }

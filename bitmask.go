@@ -126,14 +126,14 @@ func SetBits(a uint, bits ...int) uint {
 	return a
 }
 
-// clamp returns min if a < min, max if max < a, or otherwise a.
-func clamp(a, min, max int) int {
+// clamp returns a if n < a, b if b < n, or otherwise n.
+func clamp(n, a, b int) int {
 	switch {
-	case a < min:
-		return min
-	case max < a:
-		return max
-	default:
+	case n < a:
 		return a
+	case b < n:
+		return b
+	default:
+		return n
 	}
 }

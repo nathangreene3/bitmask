@@ -42,13 +42,8 @@ func TestPrimes(t *testing.T) {
 }
 
 func TestSquares(t *testing.T) {
-	var (
-		squares    = One
-		sqrtBitCap = int(math.Sqrt(float64(BitCap)))
-		i1         = sqrtBitCap + int(math.Log2(float64(sqrtBitCap)))<<1 - 1
-	)
-
-	for i := 1; i <= i1; i += 2 {
+	var squares = One
+	for i := 1; i < BitCap; i += 2 {
 		// 1+3+5+...+(2n-1) is odd for n in N
 		squares = squares.SetBit(squares.PrevBit(BitCap) + i)
 	}
@@ -67,11 +62,10 @@ func TestSquares(t *testing.T) {
 			t.Errorf("\nexpected %d to not be masked as square\n", n)
 		}
 	}
-
 }
 
 func TestNextPrevBit(t *testing.T) {
-	if exp, rec := 63, One.ShiftLeft(63).PrevBit(BitCap); exp != rec {
+	if exp, rec := 63, One.Left(63).PrevBit(BitCap); exp != rec {
 		t.Fatalf("\nexpected %d\nreceived %d\n", exp, rec)
 	}
 
