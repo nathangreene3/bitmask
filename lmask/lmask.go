@@ -302,9 +302,9 @@ func (a *LMask) JSON() string {
 	return string(b)
 }
 
-// Left shifts all set bits by a given amount. That is, each set bit i
+// LSh shifts all set bits by a given amount. That is, each set bit i
 // will be unset and bit i+bits will be set.
-func (a *LMask) Left(bits int) *LMask {
+func (a *LMask) LSh(bits int) *LMask {
 	if 0 < a.bitCap {
 		k := bits / WordBitCap
 		if 0 < k {
@@ -395,6 +395,7 @@ func (a *LMask) NextBit(bit int) int {
 // then -1 is returned.
 func (a *LMask) PrevBit(bit int) int {
 	bit = clamp(bit, 0, a.bitCap)
+
 	i := bit / WordBitCap
 	if i < len(a.words) {
 		r := (i+1)*WordBitCap - bit
@@ -412,9 +413,9 @@ func (a *LMask) PrevBit(bit int) int {
 	return -1
 }
 
-// Right shifts all set bits by a given amount. That is, each set bit i
+// RSh shifts all set bits by a given amount. That is, each set bit i
 // will be unset and bit i-bits will be set.
-func (a *LMask) Right(bits int) *LMask {
+func (a *LMask) RSh(bits int) *LMask {
 	if 0 < a.bitCap {
 		k := bits / WordBitCap
 		if 0 < k {
@@ -540,15 +541,14 @@ func (a *LMask) Words() []uint {
 
 // clamp returns a if n < a, b if b < n, or otherwise n.
 func clamp(n, a, b int) int {
-	if n < a {
+	switch {
+	case n < a:
 		return a
-	}
-
-	if b < n {
+	case b < n:
 		return b
+	default:
+		return n
 	}
-
-	return n
 }
 
 // min returns the minimum value.

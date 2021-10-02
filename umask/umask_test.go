@@ -5,10 +5,135 @@ import (
 	"testing"
 )
 
+// --------------------------------------------------------------------
+// TODO: FINISH TESTING
+// --------------------------------------------------------------------
+
+func TestAnd(t *testing.T) {
+	tests := []struct {
+		a, b, exp UMask
+	}{
+		{
+			a:   Zero.SetBits(0, BitCap-1),
+			b:   Max.ClrBits(0, BitCap-1),
+			exp: Zero,
+		},
+		{
+			a:   Max.ClrBits(0, BitCap-1),
+			b:   Max,
+			exp: Max.ClrBits(0, BitCap-1),
+		},
+	}
+
+	for _, test := range tests {
+		if rec := test.a.And(test.b); test.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+		}
+	}
+}
+
+func TestNot(t *testing.T) {
+	tests := []struct {
+		a, exp UMask
+	}{
+		{
+			a:   Zero.SetBits(0, BitCap-1),
+			exp: Max.ClrBits(0, BitCap-1),
+		},
+	}
+
+	for _, test := range tests {
+		if rec := test.a.Not(); test.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+		}
+	}
+}
+
+// --------------------------------------------------------------------
+// Applications
+// --------------------------------------------------------------------
+
+func TestFactor(t *testing.T) {
+	gcd := func(a, b int) int {
+		for 0 < b {
+			a, b = b, a%b
+		}
+
+		return a
+	}
+
+	n0, n1, dn := 0, BitCap, 1
+	for n := n0; n <= n1; n += dn {
+		var (
+			factors = Zero.SetBits(1, n)
+			i, j    = 2, n >> 1
+			p       = i * j
+		)
+
+		for i <= j {
+			if p < n {
+				i++
+				p += j
+				continue
+			}
+
+			if n < p {
+				j--
+				p -= i
+				continue
+			}
+
+			if p == n {
+				factors = factors.SetBits(i, j)
+			}
+
+			i++
+			j--
+			p += j - i + 1
+		}
+
+		for m := 0; m <= n; m++ {
+			if gcd(m, n) == m {
+				if !factors.MasksBit(m) {
+					t.Errorf("\nexpected %d to be set\n", m)
+				}
+			} else if factors.MasksBit(m) {
+				t.Errorf("\nexpected %d to not be set\n", m)
+			}
+		}
+	}
+}
+
+func TestFibonacciNumbers(t *testing.T) {
+	var (
+		fibs = Zero.SetBits(0, 1, 2)
+	)
+
+	for n := fibs.Count(); n < BitCap; n++ {
+		var (
+			b0 = fibs.PrevBit(BitCap)
+			b1 = fibs.PrevBit(b0) + b0
+		)
+
+		fibs = fibs.SetBit(b1)
+	}
+
+	for a0, a1 := 0, 1; a1 < BitCap; a0, a1 = a1, a0+a1 {
+		if !fibs.MasksBit(a1) {
+			t.Errorf("\nexpected %d to be masked\n", a1)
+		}
+	}
+}
+
 func TestPrimes(t *testing.T) {
 	// Sieve of Eratosthenes
-	primes := Max.ClrBits(0, 1) // Zero and one are not prime, but cannot be ruled out by this method without being artificially removed at initialization.
-	for p, sqrtBitCap := 2, int(math.Sqrt(float64(BitCap))); p <= sqrtBitCap; p = primes.NextBit(p) {
+
+	var (
+		sqrtBitCap = int(math.Sqrt(float64(BitCap)))
+		primes     = Max.ClrBits(0, 1)
+	)
+
+	for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
 		if primes.MasksBit(p) {
 			for k := p * p; k < BitCap; k += p {
 				primes = primes.ClrBit(k)
@@ -16,6 +141,7 @@ func TestPrimes(t *testing.T) {
 		}
 	}
 
+	// isPrime is a simple method determining if a number is prime or not.
 	isPrime := func(n int) bool {
 		if n < 2 {
 			return false
@@ -33,19 +159,23 @@ func TestPrimes(t *testing.T) {
 	for i := 0; i < BitCap; i++ {
 		if isPrime(i) {
 			if !primes.MasksBit(i) {
-				t.Errorf("expected %d to be masked as prime\n", i)
+				t.Errorf("\nexpected %d to be masked as prime\n", i)
 			}
 		} else if primes.MasksBit(i) {
-			t.Errorf("expected %d to not be masked as prime\n", i)
+			t.Errorf("\nexpected %d to not be masked as prime\n", i)
 		}
 	}
 }
 
 func TestSquares(t *testing.T) {
-	var squares = One
-	for i := 1; i < BitCap; i += 2 {
-		// 1+3+5+...+(2n-1) is odd for n in N
-		squares = squares.SetBit(squares.PrevBit(BitCap) + i)
+	squares := One
+	for i := 1; ; i += 2 {
+		square := squares.PrevBit(BitCap) + i
+		if BitCap <= square {
+			break
+		}
+
+		squares = squares.SetBit(square)
 	}
 
 	isSquare := func(n int) bool {
@@ -64,62 +194,57 @@ func TestSquares(t *testing.T) {
 	}
 }
 
-func TestNextPrevBit(t *testing.T) {
-	if exp, rec := 63, One.Left(63).PrevBit(BitCap); exp != rec {
-		t.Fatalf("\nexpected %d\nreceived %d\n", exp, rec)
-	}
+func BenchmarkPrimes(b *testing.B) {
+	benchmarkPrimes(b)
+	benchmarkPrimesNextBit(b)
+}
 
-	tests := []UMask{
-		Zero,
-		One,
-		Zero.SetBits(0, 63),                      // End bits
-		Zero.SetBits(0, 2, 4, 6, 56, 58, 60, 62), // Some even bits
-		Zero.SetBits(1, 3, 5, 7, 57, 59, 61, 63), // Some odd bits
-		Max.ClrBits(0, 63),                       // Middle bits
-		Max,
-	}
+func benchmarkPrimes(b *testing.B) bool {
+	f := func(b *testing.B) {
+		var (
+			primes     UMask
+			sqrtBitCap int
+		)
 
-	for _, test := range tests {
-		for i := 0; i < BitCap; i++ {
-			if test.MasksBit(i) {
-				if rec := test.NextBit(i - 1); i != rec {
-					t.Errorf("\nexpected next bit to be %d\nreceived next bit %d\n", i, rec)
-				}
-
-				if rec := test.PrevBit(i + 1); i != rec {
-					t.Errorf("\nexpected previous bit to be %d\nreceived next bit %d\n", i, rec)
-				}
-			} else {
-				if rec := test.NextBit(i - 1); i == rec {
-					t.Errorf("\nexpected next bit to NOT be %d\nreceived next bit %d\n", i, rec)
-				}
-
-				if rec := test.PrevBit(i + 1); i == rec {
-					t.Errorf("\nexpected previous bit to NOT be %d\nreceived next bit %d\n", i, rec)
+		for i := 0; i < b.N; i++ {
+			primes = Max.ClrBit(0).ClrBit(1)
+			sqrtBitCap = int(math.Sqrt(float64(BitCap)))
+			for p := 2; p <= sqrtBitCap; p++ {
+				if primes.MasksBit(p) {
+					for m := p << 1; m < BitCap; m += p {
+						primes = primes.ClrBit(m)
+					}
 				}
 			}
 		}
 
-		{
-			rec := Zero
-			for i := test.NextBit(-1); i < BitCap; i = test.NextBit(i) {
-				rec = rec.SetBit(i)
-			}
-
-			if exp := test; exp != rec {
-				t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
-			}
-		}
-
-		{
-			rec := test
-			for i := test.PrevBit(BitCap); -1 < i; i = test.PrevBit(i) {
-				rec = rec.ClrBit(i)
-			}
-
-			if exp := Zero; exp != rec {
-				t.Errorf("\nexpected %d\nreceived %d\n", test, rec)
-			}
-		}
+		_, _ = primes, sqrtBitCap
 	}
+
+	return b.Run("", f)
+}
+
+func benchmarkPrimesNextBit(b *testing.B) bool {
+	f := func(b *testing.B) {
+		var (
+			primes     UMask
+			sqrtBitCap int
+		)
+
+		for i := 0; i < b.N; i++ {
+			primes = Max.ClrBit(0).ClrBit(1)
+			sqrtBitCap = int(math.Sqrt(float64(BitCap)))
+			for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
+				if primes.MasksBit(p) {
+					for k := p * p; k < BitCap; k += p {
+						primes = primes.ClrBit(k)
+					}
+				}
+			}
+		}
+
+		_, _ = primes, sqrtBitCap
+	}
+
+	return b.Run("", f)
 }

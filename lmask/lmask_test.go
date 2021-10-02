@@ -7,6 +7,21 @@ import (
 	"testing"
 )
 
+func TestFromToBigInt(t *testing.T) {
+	tests := []*big.Int{
+		big.NewInt(0),
+		big.NewInt(1),
+		big.NewInt(WordMax >> 1),
+		big.NewInt(0).Lsh(big.NewInt(1), 2*WordBitCap),
+	}
+
+	for _, exp := range tests {
+		if rec := FromBigInt(exp).BigInt(); exp.Cmp(rec) != 0 {
+			t.Errorf("\nexpected %v\nreceived %v\n", exp, rec)
+		}
+	}
+}
+
 func TestFromBits(t *testing.T) {
 	tests := []struct {
 		bitCap int
@@ -14,12 +29,9 @@ func TestFromBits(t *testing.T) {
 		exp    *LMask
 	}{
 		{
-			bitCap: 256,
-			bits:   []int{0, 63, 64, 127, 128, 191, 192, 255},
-			exp: &LMask{
-				bitCap: 256,
-				words:  []uint{1<<0 | 1<<63, 1<<0 | 1<<63, 1<<0 | 1<<63, 1<<0 | 1<<63},
-			},
+			bitCap: 4 * WordBitCap,
+			bits:   []int{0, WordBitCap - 1, WordBitCap, 2*WordBitCap - 1, 2 * WordBitCap, 3*WordBitCap - 1, 3 * WordBitCap, 4*WordBitCap - 1},
+			exp:    &LMask{bitCap: 4 * WordBitCap, words: []uint{1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1)}},
 		},
 	}
 
@@ -40,8 +52,8 @@ func TestFromWords(t *testing.T) {
 			exp:   &LMask{bitCap: 0, words: []uint{}},
 		},
 		{
-			words: []uint{uint(1<<64 - 1), uint(1<<64 - 1), uint(1<<64 - 1), uint(1<<64 - 1)},
-			exp:   &LMask{bitCap: 256, words: []uint{uint(1<<64 - 1), uint(1<<64 - 1), uint(1<<64 - 1), uint(1<<64 - 1)}},
+			words: []uint{uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1)},
+			exp:   &LMask{bitCap: 4 * WordBitCap, words: []uint{uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1), uint(1<<WordBitCap - 1)}},
 		},
 	}
 
@@ -59,52 +71,31 @@ func TestMax(t *testing.T) {
 	}{
 		{
 			bitCap: 0,
-			exp: &LMask{
-				bitCap: 0,
-				words:  []uint{},
-			},
+			exp:    &LMask{bitCap: 0, words: []uint{}},
 		},
 		{
 			bitCap: 1,
-			exp: &LMask{
-				bitCap: 1,
-				words:  []uint{1},
-			},
+			exp:    &LMask{bitCap: 1, words: []uint{1}},
 		},
 		{
 			bitCap: WordBitCap - 1,
-			exp: &LMask{
-				bitCap: WordBitCap - 1,
-				words:  []uint{WordMax >> 1},
-			},
+			exp:    &LMask{bitCap: WordBitCap - 1, words: []uint{WordMax >> 1}},
 		},
 		{
 			bitCap: WordBitCap,
-			exp: &LMask{
-				bitCap: WordBitCap,
-				words:  []uint{WordMax},
-			},
+			exp:    &LMask{bitCap: WordBitCap, words: []uint{WordMax}},
 		},
 		{
-			bitCap: 65,
-			exp: &LMask{
-				bitCap: 65,
-				words:  []uint{WordMax, 1},
-			},
+			bitCap: WordBitCap + 1,
+			exp:    &LMask{bitCap: WordBitCap + 1, words: []uint{WordMax, 1}},
 		},
 		{
-			bitCap: 127,
-			exp: &LMask{
-				bitCap: 127,
-				words:  []uint{WordMax, WordMax >> 1},
-			},
+			bitCap: 2*WordBitCap - 1,
+			exp:    &LMask{bitCap: 2*WordBitCap - 1, words: []uint{WordMax, WordMax >> 1}},
 		},
 		{
-			bitCap: 128,
-			exp: &LMask{
-				bitCap: 128,
-				words:  []uint{WordMax, WordMax},
-			},
+			bitCap: 2 * WordBitCap,
+			exp:    &LMask{bitCap: 2 * WordBitCap, words: []uint{WordMax, WordMax}},
 		},
 	}
 
@@ -119,31 +110,29 @@ func TestMax(t *testing.T) {
 func TestOne(t *testing.T) {
 	tests := []struct {
 		bitCap int
-		bits   []int
 		exp    *LMask
 	}{
 		{
-			bitCap: 64,
-			bits:   []int{2, 3, 5, 7},
-			exp: &LMask{
-				bitCap: 64,
-				words:  []uint{1 | 1<<2 | 1<<3 | 1<<5 | 1<<7},
-			},
+			bitCap: 1,
+			exp:    &LMask{bitCap: 1, words: []uint{1}},
 		},
 		{
-			bitCap: 128,
-			bits:   []int{2, 3, 5, 7, 127},
-			exp: &LMask{
-				bitCap: 128,
-				words:  []uint{1 | 1<<2 | 1<<3 | 1<<5 | 1<<7, 1 << 63},
-			},
+			bitCap: WordBitCap,
+			exp:    &LMask{bitCap: WordBitCap, words: []uint{1}},
+		},
+		{
+			bitCap: WordBitCap + 1,
+			exp:    &LMask{bitCap: WordBitCap + 1, words: []uint{1, 0}},
+		},
+		{
+			bitCap: 4 * WordBitCap,
+			exp:    &LMask{bitCap: 4 * WordBitCap, words: []uint{1, 0, 0, 0}},
 		},
 	}
 
 	for _, test := range tests {
-		a := One(test.bitCap).SetBits(test.bits...)
-		if !a.Masks(test.exp) || !test.exp.Masks(a) {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, a)
+		if rec := One(test.bitCap); !test.exp.Equals(rec) {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
 		}
 	}
 }
@@ -151,39 +140,29 @@ func TestOne(t *testing.T) {
 func TestZero(t *testing.T) {
 	tests := []struct {
 		bitCap int
-		bits   []int
 		exp    *LMask
 	}{
 		{
-			bitCap: 0,
-			bits:   []int{},
-			exp: &LMask{
-				bitCap: 0,
-				words:  []uint{},
-			},
+			bitCap: 1,
+			exp:    &LMask{bitCap: 1, words: []uint{0}},
 		},
 		{
-			bitCap: 64,
-			bits:   []int{2, 3, 5, 7},
-			exp: &LMask{
-				bitCap: 64,
-				words:  []uint{1<<2 | 1<<3 | 1<<5 | 1<<7},
-			},
+			bitCap: WordBitCap,
+			exp:    &LMask{bitCap: WordBitCap, words: []uint{0}},
 		},
 		{
-			bitCap: 128,
-			bits:   []int{2, 3, 5, 7, 127},
-			exp: &LMask{
-				bitCap: 128,
-				words:  []uint{1<<2 | 1<<3 | 1<<5 | 1<<7, 1 << 63},
-			},
+			bitCap: WordBitCap + 1,
+			exp:    &LMask{bitCap: WordBitCap + 1, words: []uint{0, 0}},
+		},
+		{
+			bitCap: 4 * WordBitCap,
+			exp:    &LMask{bitCap: 4 * WordBitCap, words: []uint{0, 0, 0, 0}},
 		},
 	}
 
 	for _, test := range tests {
-		a := Zero(test.bitCap).SetBits(test.bits...)
-		if !a.Masks(test.exp) || !test.exp.Masks(a) {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, a)
+		if rec := Zero(test.bitCap); !test.exp.Equals(rec) {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
 		}
 	}
 }
@@ -193,20 +172,19 @@ func TestAnd(t *testing.T) {
 		a, b, exp *LMask
 	}{
 		{
-			a:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			b:   Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
-			exp: Zero(256),
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
 		},
 		{
-			a:   Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
-			b:   Max(256),
-			exp: Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
+			a:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Max(4 * WordBitCap),
+			exp: Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
 		},
 	}
 
 	for _, test := range tests {
-		rec := test.a.Copy().And(test.b)
-		if !test.exp.Masks(rec) || !rec.Masks(test.exp) || !test.exp.Equals(rec) {
+		if rec := test.a.Copy().And(test.b); !test.exp.Equals(rec) {
 			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
 		}
 	}
@@ -217,14 +195,13 @@ func TestNot(t *testing.T) {
 		a, exp *LMask
 	}{
 		{
-			a:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			exp: Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
 		},
 	}
 
 	for _, test := range tests {
-		rec := test.a.Copy().Not()
-		if !test.exp.Masks(rec) || !rec.Masks(test.exp) {
+		if rec := test.a.Copy().Not(); !test.exp.Equals(test.exp) {
 			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
 		}
 	}
@@ -235,15 +212,14 @@ func TestOr(t *testing.T) {
 		a, b, exp *LMask
 	}{
 		{
-			a:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			b:   Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
-			exp: Max(256),
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Max(4 * WordBitCap),
 		},
 	}
 
 	for _, test := range tests {
-		rec := test.a.Copy().Or(test.b)
-		if !test.exp.Masks(rec) || !rec.Masks(test.exp) {
+		if rec := test.a.Copy().Or(test.b); !test.exp.Equals(rec) {
 			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
 		}
 	}
@@ -254,21 +230,104 @@ func TestXOr(t *testing.T) {
 		a, b, exp *LMask
 	}{
 		{
-			a:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			b:   Max(256).ClrBits(0, 63, 64, 127, 128, 185, 186, 255),
-			exp: Max(256),
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Max(4 * WordBitCap),
 		},
 		{
-			a:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			b:   Zero(256).SetBits(0, 63, 64, 127, 128, 185, 186, 255),
-			exp: Zero(256),
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
 		},
 	}
 
 	for _, test := range tests {
 		rec := test.a.Copy().XOr(test.b)
-		if !test.exp.Masks(rec) || !rec.Masks(test.exp) {
+		if !test.exp.Equals(rec) {
 			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+		}
+	}
+}
+
+func TestBitCap(t *testing.T) {
+	tests := []int{0, 1, WordBitCap, 2 * WordBitCap}
+	for _, exp := range tests {
+		if rec := FromBits(exp).BitCap(); exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
+		}
+	}
+}
+
+func TestBitLen(t *testing.T) {
+	tests := []struct {
+		a   *LMask
+		exp int
+	}{
+		{
+			a:   FromBits(0),
+			exp: 0,
+		},
+		{
+			a:   FromBits(1),
+			exp: 0,
+		},
+		{
+			a:   FromBits(1, 0),
+			exp: 1,
+		},
+		{
+			a:   FromBits(2),
+			exp: 0,
+		},
+		{
+			a:   FromBits(2, 0),
+			exp: 1,
+		},
+		{
+			a:   FromBits(2, 1),
+			exp: 2,
+		},
+		{
+			a:   FromBits(2, 0, 1),
+			exp: 2,
+		},
+		{
+			a:   FromBits(WordBitCap),
+			exp: 0,
+		},
+		{
+			a:   FromBits(WordBitCap, 0),
+			exp: 1,
+		},
+		{
+			a:   FromBits(WordBitCap, WordBitCap-1),
+			exp: WordBitCap,
+		},
+		{
+			a:   FromBits(WordBitCap, 0, WordBitCap-1),
+			exp: WordBitCap,
+		},
+		{
+			a:   FromBits(2 * WordBitCap),
+			exp: 0,
+		},
+		{
+			a:   FromBits(2*WordBitCap, 0),
+			exp: 1,
+		},
+		{
+			a:   FromBits(2*WordBitCap, 2*WordBitCap-1),
+			exp: 2 * WordBitCap,
+		},
+		{
+			a:   FromBits(2*WordBitCap, 0, 2*WordBitCap-1),
+			exp: 2 * WordBitCap,
+		},
+	}
+
+	for _, test := range tests {
+		if rec := test.a.BitLen(); test.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
 		}
 	}
 }
@@ -283,25 +342,24 @@ func TestJSON(t *testing.T) {
 			expJSON:  "null",
 		},
 		{
-			expLMask: Zero(256),
+			expLMask: Zero(4 * WordBitCap),
 			expJSON:  "0",
 		},
 		{
-			expLMask: One(256),
+			expLMask: One(4 * WordBitCap),
 			expJSON:  "1",
 		},
 		{
-			expLMask: FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<0 | 1<<63, 1<<0 | 1<<63, 1<<0 | 1<<63, 1<<0 | 1<<63}).Text(10),
+			expLMask: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1)}).Text(10),
 		},
 		{
-			expLMask: Max(256),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<64 - 1, 1<<64 - 1, 1<<64 - 1, 1<<64 - 1}).Text(10),
+			expLMask: Max(4 * WordBitCap),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}).Text(10),
 		},
 		{
-			// Test max with bit cap that isn't a multiple of a word bit cap
-			expLMask: Max(255),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<64 - 1, 1<<64 - 1, 1<<64 - 1, 1<<63 - 1}).Text(10),
+			expLMask: Max(4*WordBitCap - 1),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<(WordBitCap-1) - 1}).Text(10),
 		},
 	}
 
@@ -333,78 +391,78 @@ func TestJSON(t *testing.T) {
 	}
 }
 
-func TestLeftRight(t *testing.T) {
+func TestLRSh(t *testing.T) {
 	tests := []struct {
 		a, expLeft, expRight *LMask
 		left, right          int
 	}{
-		// Shifts less than 64
+		// Shifts less than WordBitCap
 		{
-			a:        FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
+			a:        FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
 			left:     0,
 			right:    0,
-			expLeft:  FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
-			expRight: FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
+			expLeft:  FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			expRight: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
 		},
 		{
-			a:        FromBits(64, 0, 63),
+			a:        FromBits(WordBitCap, 0, WordBitCap-1),
 			left:     1,
 			right:    1,
-			expLeft:  FromBits(64, 1),
-			expRight: FromBits(64, 62),
+			expLeft:  FromBits(WordBitCap, 1),
+			expRight: FromBits(WordBitCap, WordBitCap-2),
 		},
 		{
-			a:        FromBits(128, 0, 63, 64, 127),
+			a:        FromBits(2*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1),
 			left:     1,
 			right:    1,
-			expLeft:  FromBits(128, 1, 64, 65),
-			expRight: FromBits(128, 62, 63, 126),
+			expLeft:  FromBits(2*WordBitCap, 1, WordBitCap, WordBitCap+1),
+			expRight: FromBits(2*WordBitCap, WordBitCap-2, WordBitCap-1, 2*WordBitCap-2),
 		},
 		{
-			a:        FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
+			a:        FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
 			left:     1,
 			right:    1,
-			expLeft:  FromBits(256, 1, 64, 65, 128, 129, 192, 193),
-			expRight: FromBits(256, 62, 63, 126, 127, 190, 191, 254),
+			expLeft:  FromBits(4*WordBitCap, 1, WordBitCap, WordBitCap+1, 2*WordBitCap, 2*WordBitCap+1, 3*WordBitCap, 3*WordBitCap+1),
+			expRight: FromBits(4*WordBitCap, WordBitCap-2, WordBitCap-1, 2*WordBitCap-2, 2*WordBitCap-1, 3*WordBitCap-2, 3*WordBitCap-1, 4*WordBitCap-2),
 		},
 		{
-			a:        FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
-			left:     63,
-			right:    63,
-			expLeft:  FromBits(256, 63, 126, 127, 190, 191, 254, 255),
-			expRight: FromBits(256, 0, 1, 64, 65, 128, 129, 192),
+			a:        FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			left:     WordBitCap - 1,
+			right:    WordBitCap - 1,
+			expLeft:  FromBits(4*WordBitCap, WordBitCap-1, 2*WordBitCap-2, 2*WordBitCap-1, 3*WordBitCap-2, 3*WordBitCap-1, 4*WordBitCap-2, 4*WordBitCap-1),
+			expRight: FromBits(4*WordBitCap, 0, 1, WordBitCap, WordBitCap+1, 2*WordBitCap, 2*WordBitCap+1, 3*WordBitCap),
 		},
 
-		// Shifts larger than or equal to 64
+		// Shifts larger than or equal to WordBitCap
 		{
-			a:        FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
-			left:     64,
-			right:    64,
-			expLeft:  FromBits(256, 64, 127, 128, 191, 192, 255),
-			expRight: FromBits(256, 0, 63, 64, 127, 128, 191),
+			a:        FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			left:     WordBitCap,
+			right:    WordBitCap,
+			expLeft:  FromBits(4*WordBitCap, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			expRight: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1),
 		},
 		{
-			a:        FromBits(256, 0, 63, 64, 127, 128, 191, 192, 255),
-			left:     128,
-			right:    128,
-			expLeft:  FromBits(256, 128, 191, 192, 255),
-			expRight: FromBits(256, 0, 63, 64, 127),
+			a:        FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			left:     2 * WordBitCap,
+			right:    2 * WordBitCap,
+			expLeft:  FromBits(4*WordBitCap, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			expRight: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1),
 		},
 	}
 
 	for _, test := range tests {
-		if rec := test.a.Copy().Left(test.left); !test.expLeft.Equals(rec) {
+		if rec := test.a.Copy().LSh(test.left); !test.expLeft.Equals(rec) {
 			t.Errorf("\nexpected %s\nreceived %s\n", test.expLeft.Fmt(2), rec.Fmt(2))
 		}
 
-		if rec := test.a.Copy().Right(test.right); !test.expRight.Equals(rec) {
+		if rec := test.a.Copy().RSh(test.right); !test.expRight.Equals(rec) {
 			t.Errorf("\nexpected %s\nreceived %s\n", test.expRight.Fmt(2), rec.Fmt(2))
 		}
 	}
 }
 
 func TestNextPrevBit(t *testing.T) {
-	for bitCap := 0; bitCap <= 256; bitCap += 8 {
+	for bitCap := 0; bitCap <= 4*WordBitCap; bitCap += 8 {
 		tests := append(make([]LMask, 0, 8), *Zero(bitCap))
 		if 0 < bitCap {
 			tests = append(
@@ -482,17 +540,16 @@ func TestString(t *testing.T) {
 			exp: "<nil>",
 		},
 		{
-			a:   Zero(256),
+			a:   Zero(4 * WordBitCap),
 			exp: "0",
 		},
 		{
-			a:   Max(256),
-			exp: big.NewInt(0).SetBits([]big.Word{1<<64 - 1, 1<<64 - 1, 1<<64 - 1, 1<<64 - 1}).Text(10),
+			a:   Max(4 * WordBitCap),
+			exp: big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}).Text(10),
 		},
 		{
-			//
-			a:   Max(255),
-			exp: big.NewInt(0).SetBits([]big.Word{1<<64 - 1, 1<<64 - 1, 1<<64 - 1, 1<<63 - 1}).Text(10),
+			a:   Max(4*WordBitCap - 1),
+			exp: big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<(WordBitCap-1) - 1}).Text(10),
 		},
 	}
 
@@ -516,12 +573,12 @@ func TestTrim(t *testing.T) {
 			exp: &LMask{bitCap: 1, words: []uint{1}},
 		},
 		{
-			a:   &LMask{bitCap: 63, words: []uint{1<<WordBitCap - 1}},
-			exp: &LMask{bitCap: 63, words: []uint{1<<(WordBitCap-1) - 1}},
+			a:   &LMask{bitCap: WordBitCap - 1, words: []uint{1<<WordBitCap - 1}},
+			exp: &LMask{bitCap: WordBitCap - 1, words: []uint{1<<(WordBitCap-1) - 1}},
 		},
 		{
-			a:   &LMask{bitCap: 193, words: []uint{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}},
-			exp: &LMask{bitCap: 193, words: []uint{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1}},
+			a:   &LMask{bitCap: 3*WordBitCap + 1, words: []uint{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}},
+			exp: &LMask{bitCap: 3*WordBitCap + 1, words: []uint{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1}},
 		},
 	}
 
@@ -536,18 +593,77 @@ func TestTrim(t *testing.T) {
 // Applications
 // --------------------------------------------------------------------
 
+// TestFactor generates all divisors of an integer. This test
+// demonstrates factoring an integeger without using the big package.
+func TestFactor(t *testing.T) {
+	gcd := func(a, b int) int {
+		for 0 < b {
+			a, b = b, a%b
+		}
+
+		return a
+	}
+
+	n0, n1, dn := 0, 4*WordBitCap, 8
+	for n := n0; n <= n1; n += dn {
+		var (
+			factors = Zero(n+1).SetBits(1, n)
+			i, j    = 2, n >> 1
+			p       = i * j
+		)
+
+		for i <= j {
+			if p < n {
+				i++
+				p += j
+				continue
+			}
+
+			if n < p {
+				j--
+				p -= i
+				continue
+			}
+
+			if p == n {
+				factors.SetBits(i, j)
+			}
+
+			i++
+			j--
+			p += j - i + 1
+		}
+
+		for m := 0; m <= n; m++ {
+			if gcd(m, n) == m {
+				if !factors.MasksBit(m) {
+					t.Errorf("\nexpected %d to be set\n", m)
+				}
+			} else if factors.MasksBit(m) {
+				t.Errorf("\nexpected %d to not be set\n", m)
+			}
+		}
+	}
+}
+
 // TestFibonacciNumbers generates n Fibonacci numbers. This test
 // demonstrates updating the bit capacity when the ith bit is not known
 // in advance. That is, we don't know what the bit capacity should be
 // when computing n Fibonacci numbers.
 func TestFibonacciNumbers(t *testing.T) {
-	fibs := Zero(4).SetBits(0, 1, 2)
-	maxCount := 50
+	var (
+		fibs     = Zero(4).SetBits(0, 1, 2)
+		maxCount = 50
+	)
+
 	for n := fibs.Count(); n < maxCount; n++ {
-		b0 := fibs.PrevBit(fibs.BitCap())
-		b1 := fibs.PrevBit(b0) + b0
-		if bc := fibs.BitCap(); bc <= b1 {
-			fibs.SetBitCap(b1 << 1) // Double the current bit capacity similar to append
+		var (
+			b0 = fibs.PrevBit(fibs.BitCap())
+			b1 = fibs.PrevBit(b0) + b0
+		)
+
+		if fibs.BitCap() <= b1 {
+			fibs.SetBitCap(b1 << 1)
 		}
 
 		fibs.SetBit(b1)
@@ -649,7 +765,7 @@ func TestSquares(t *testing.T) {
 }
 
 func BenchmarkPrimes(b *testing.B) {
-	n0, n1, dn := 0, 256, 8
+	n0, n1, dn := 0, 4*WordBitCap, 8
 	for n := n0; n <= n1; n += dn {
 		benchmarkPrimes(b, n)
 	}
