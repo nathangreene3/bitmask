@@ -11,6 +11,9 @@ const (
 
 	// WordMax is the maximum word.
 	WordMax = 1<<WordBitCap - 1
+
+	// errUneqBitCaps ...
+	errUneqBitCaps = "unequal bit capacities"
 )
 
 // LMask is an arbitrarily sized bitmask.
@@ -85,16 +88,14 @@ func Zero(bitCap int) *LMask {
 // And sets each bit in a if the bit in b is also set. Otherwise, the
 // bit in a is unset.
 func (a *LMask) And(b *LMask) *LMask {
-	if a == b {
-		return a
-	}
+	if a != b {
+		if a.bitCap != b.bitCap {
+			panic(errUneqBitCaps)
+		}
 
-	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
-	}
-
-	for i := 0; i < len(a.words); i++ {
-		a.words[i] &= b.words[i]
+		for i := 0; i < len(a.words); i++ {
+			a.words[i] &= b.words[i]
+		}
 	}
 
 	return a
@@ -104,7 +105,7 @@ func (a *LMask) And(b *LMask) *LMask {
 // is not set. Otherwise, the bit in a is unset.
 func (a *LMask) AndNot(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -118,7 +119,7 @@ func (a *LMask) AndNot(b *LMask) *LMask {
 // Otherwise, the bit in a is unset.
 func (a *LMask) NAnd(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -132,7 +133,7 @@ func (a *LMask) NAnd(b *LMask) *LMask {
 // the bit is unset.
 func (a *LMask) NOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -155,7 +156,7 @@ func (a *LMask) Not() *LMask {
 // the bit in a is unset.
 func (a *LMask) Or(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -169,7 +170,7 @@ func (a *LMask) Or(b *LMask) *LMask {
 // unset. Otherwise, the bit in a is unset.
 func (a *LMask) XNOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -183,7 +184,7 @@ func (a *LMask) XNOr(b *LMask) *LMask {
 // Otherwise, the bit in a is unset.
 func (a *LMask) XOr(b *LMask) *LMask {
 	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+		panic(errUneqBitCaps)
 	}
 
 	for i := 0; i < len(a.words); i++ {
@@ -226,6 +227,16 @@ func (a *LMask) BitLen() int {
 	}
 
 	return 0
+}
+
+// Bits returns the bits that are set in a bitmask.
+func (a *LMask) Bits() []int {
+	bits := make([]int, 0, a.Count())
+	for bit := a.NextBit(-1); bit < a.bitCap; bit = a.NextBit(bit) {
+		bits = append(bits, bit)
+	}
+
+	return bits
 }
 
 // Clr unsets each bit in a that is set in b.
@@ -351,8 +362,8 @@ func (a *LMask) Masks(b *LMask) bool {
 		return true
 	}
 
-	if a.bitCap != b.bitCap {
-		panic("undefined on unequal bit capacities")
+	if b.bitCap < a.bitCap {
+		return false
 	}
 
 	for i := 0; i < len(a.words); i++ {

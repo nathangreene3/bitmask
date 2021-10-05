@@ -7,6 +7,10 @@ import (
 	"testing"
 )
 
+// --------------------------------------------------------------------
+// TODO: FINISH TESTING
+// --------------------------------------------------------------------
+
 func TestFromToBigInt(t *testing.T) {
 	tests := []*big.Int{
 		big.NewInt(0),
@@ -190,6 +194,33 @@ func TestAnd(t *testing.T) {
 	}
 }
 
+func TestBits(t *testing.T) {
+	tests := [][]int{
+		{},
+		{0},
+		{0, WordBitCap - 1},
+	}
+
+	for _, test := range tests {
+		var (
+			rec   = Zero(4 * WordBitCap).SetBits(test...).Bits()
+			equal = true
+		)
+
+		if len(test) != len(rec) {
+			equal = false
+		}
+
+		for i := 0; i < len(test) && equal; i++ {
+			equal = test[i] == rec[i]
+		}
+
+		if !equal {
+			t.Errorf("\nexpected %d\nreceived %d\n", test, rec)
+		}
+	}
+}
+
 func TestNot(t *testing.T) {
 	tests := []struct {
 		a, exp *LMask
@@ -225,35 +256,195 @@ func TestOr(t *testing.T) {
 	}
 }
 
-func TestXOr(t *testing.T) {
-	tests := []struct {
-		a, b, exp *LMask
-	}{
-		{
-			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
-			b:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
-			exp: Max(4 * WordBitCap),
-		},
-		{
-			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
-			b:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
-			exp: Zero(4 * WordBitCap),
-		},
-	}
-
-	for _, test := range tests {
-		rec := test.a.Copy().XOr(test.b)
-		if !test.exp.Equals(rec) {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
-		}
-	}
-}
-
 func TestBitCap(t *testing.T) {
 	tests := []int{0, 1, WordBitCap, 2 * WordBitCap}
 	for _, exp := range tests {
 		if rec := FromBits(exp).BitCap(); exp != rec {
 			t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
+		}
+	}
+}
+
+func TestClr(t *testing.T) {
+	tests := []struct {
+		a, b, exp *LMask
+	}{
+		{
+			a:   Zero(4 * WordBitCap),
+			b:   Zero(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4 * WordBitCap),
+			b:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Zero(4 * WordBitCap),
+			exp: Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Max(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+	}
+
+	for _, test := range tests {
+		if test.a.Clr(test.b); !test.exp.Equals(test.a) {
+			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, test.a)
+		}
+	}
+}
+
+func TestClrBit(t *testing.T) {
+	tests := []struct {
+		a, exp *LMask
+		bit    int
+	}{
+		{
+			a:   Zero(4 * WordBitCap).SetBits(),
+			exp: Zero(4 * WordBitCap).SetBits(),
+			bit: 0,
+		},
+		{
+			a:   Zero(4 * WordBitCap).SetBits(0),
+			exp: Zero(4 * WordBitCap).SetBits(),
+			bit: 0,
+		},
+		{
+			a:   Zero(4 * WordBitCap).SetBits(1),
+			exp: Zero(4 * WordBitCap).SetBits(),
+			bit: 1,
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 1),
+			exp: Zero(4 * WordBitCap).SetBits(0),
+			bit: 1,
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 1),
+			exp: Zero(4 * WordBitCap).SetBits(1),
+			bit: 0,
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap).SetBits(0),
+			bit: 4*WordBitCap - 1,
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap).SetBits(4*WordBitCap - 1),
+			bit: 0,
+		},
+	}
+
+	for _, test := range tests {
+		if test.a.ClrBit(test.bit); !test.exp.Equals(test.a) {
+			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, test.a)
+		}
+	}
+}
+
+func TestClrBits(t *testing.T) {
+	tests := []struct {
+		a, b, exp *LMask
+	}{
+		{
+			a:   Zero(4 * WordBitCap),
+			b:   Zero(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4 * WordBitCap),
+			b:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Zero(4 * WordBitCap),
+			exp: Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, 4*WordBitCap-1),
+			b:   Max(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+	}
+
+	for _, test := range tests {
+		if test.a.ClrBits(test.b.Bits()...); !test.exp.Equals(test.a) {
+			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, test.a)
+		}
+	}
+}
+
+func TestJSON(t *testing.T) {
+	tests := []struct {
+		expLMask *LMask
+		expJSON  string
+	}{
+		{
+			expLMask: nil,
+			expJSON:  "null",
+		},
+		{
+			expLMask: Zero(4 * WordBitCap),
+			expJSON:  "0",
+		},
+		{
+			expLMask: One(4 * WordBitCap),
+			expJSON:  "1",
+		},
+		{
+			expLMask: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1)}).Text(10),
+		},
+		{
+			expLMask: Max(4 * WordBitCap),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}).Text(10),
+		},
+		{
+			expLMask: Max(4*WordBitCap - 1),
+			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<(WordBitCap-1) - 1}).Text(10),
+		},
+	}
+
+	for _, test := range tests {
+		recJSON := test.expLMask.JSON()
+		if test.expJSON != recJSON {
+			t.Errorf("\nexpected %q\nreceived %q\n", test.expJSON, recJSON)
+			continue
+		}
+
+		recLMask, err := FromJSON(recJSON)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		if test.expLMask == nil {
+			if recLMask.bitCap != 0 || len(recLMask.words) != 0 {
+				t.Errorf("\nexpected %v\nreceived %v\n", Zero(0), recLMask)
+			}
+
+			continue
+		}
+
+		recLMask.SetBitCap(test.expLMask.BitCap())
+		if !test.expLMask.Equals(recLMask) {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.expLMask, recLMask)
 		}
 	}
 }
@@ -328,65 +519,6 @@ func TestBitLen(t *testing.T) {
 	for _, test := range tests {
 		if rec := test.a.BitLen(); test.exp != rec {
 			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
-		}
-	}
-}
-
-func TestJSON(t *testing.T) {
-	tests := []struct {
-		expLMask *LMask
-		expJSON  string
-	}{
-		{
-			expLMask: nil,
-			expJSON:  "null",
-		},
-		{
-			expLMask: Zero(4 * WordBitCap),
-			expJSON:  "0",
-		},
-		{
-			expLMask: One(4 * WordBitCap),
-			expJSON:  "1",
-		},
-		{
-			expLMask: FromBits(4*WordBitCap, 0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 3*WordBitCap-1, 3*WordBitCap, 4*WordBitCap-1),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1), 1 | 1<<(WordBitCap-1)}).Text(10),
-		},
-		{
-			expLMask: Max(4 * WordBitCap),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1}).Text(10),
-		},
-		{
-			expLMask: Max(4*WordBitCap - 1),
-			expJSON:  big.NewInt(0).SetBits([]big.Word{1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<WordBitCap - 1, 1<<(WordBitCap-1) - 1}).Text(10),
-		},
-	}
-
-	for _, test := range tests {
-		recJSON := test.expLMask.JSON()
-		if test.expJSON != recJSON {
-			t.Errorf("\nexpected %q\nreceived %q\n", test.expJSON, recJSON)
-			continue
-		}
-
-		recLMask, err := FromJSON(recJSON)
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-
-		if test.expLMask == nil {
-			if recLMask.bitCap != 0 || len(recLMask.words) != 0 {
-				t.Errorf("\nexpected %v\nreceived %v\n", Zero(0), recLMask)
-			}
-
-			continue
-		}
-
-		recLMask.SetBitCap(test.expLMask.BitCap())
-		if !test.expLMask.Equals(recLMask) {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.expLMask, recLMask)
 		}
 	}
 }
@@ -589,6 +721,30 @@ func TestTrim(t *testing.T) {
 	}
 }
 
+func TestXOr(t *testing.T) {
+	tests := []struct {
+		a, b, exp *LMask
+	}{
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Max(4*WordBitCap).ClrBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Max(4 * WordBitCap),
+		},
+		{
+			a:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			b:   Zero(4*WordBitCap).SetBits(0, WordBitCap-1, WordBitCap, 2*WordBitCap-1, 2*WordBitCap, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+	}
+
+	for _, test := range tests {
+		rec := test.a.Copy().XOr(test.b)
+		if !test.exp.Equals(rec) {
+			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+		}
+	}
+}
+
 // --------------------------------------------------------------------
 // Applications
 // --------------------------------------------------------------------
@@ -609,29 +765,23 @@ func TestFactor(t *testing.T) {
 		var (
 			factors = Zero(n+1).SetBits(1, n)
 			i, j    = 2, n >> 1
-			p       = i * j
+			d       = i * j
 		)
 
 		for i <= j {
-			if p < n {
+			switch {
+			case d < n:
 				i++
-				p += j
-				continue
-			}
-
-			if n < p {
+				d += j
+			case n < d:
 				j--
-				p -= i
-				continue
-			}
-
-			if p == n {
+				d -= i
+			default:
 				factors.SetBits(i, j)
+				i++
+				j--
+				d += j - i + 1
 			}
-
-			i++
-			j--
-			p += j - i + 1
 		}
 
 		for m := 0; m <= n; m++ {
@@ -657,11 +807,8 @@ func TestFibonacciNumbers(t *testing.T) {
 	)
 
 	for n := fibs.Count(); n < maxCount; n++ {
-		var (
-			b0 = fibs.PrevBit(fibs.BitCap())
-			b1 = fibs.PrevBit(b0) + b0
-		)
-
+		b0 := fibs.PrevBit(fibs.BitCap())
+		b1 := fibs.PrevBit(b0) + b0
 		if fibs.BitCap() <= b1 {
 			fibs.SetBitCap(b1 << 1)
 		}
@@ -740,12 +887,12 @@ func TestSquares(t *testing.T) {
 	)
 
 	for i := 1; ; i += 2 {
-		square := squares.PrevBit(bitCap) + i
-		if bitCap <= square {
+		s := squares.PrevBit(bitCap) + i
+		if bitCap <= s {
 			break
 		}
 
-		squares.SetBit(square)
+		squares.SetBit(s)
 	}
 
 	isSquare := func(n int) bool {

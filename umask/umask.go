@@ -72,6 +72,16 @@ func (a UMask) XOr(b UMask) UMask {
 // Additional functionality
 // --------------------------------------------------------------------
 
+// Bits returns the bits that are set in a bitmask.
+func (a UMask) Bits() []int {
+	bits := make([]int, 0, BitCap)
+	for bit := a.NextBit(-1); bit < BitCap; bit = a.NextBit(bit) {
+		bits = append(bits, bit)
+	}
+
+	return bits
+}
+
 // Clr returns a bitmask with the bits of each given bitmask b cleared
 // from a.
 func (a UMask) Clr(b UMask) UMask {
@@ -105,13 +115,13 @@ func (a UMask) Fmt(base int) string {
 	return strconv.FormatUint(uint64(a), base)
 }
 
-// LSh returns a bitmask shifted to the left n times.
+// LSh returns a bitmask shifted to the left a given number of bits.
 func (a UMask) LSh(bits int) UMask {
 	return a << bits
 }
 
-// Len returns the minimum number of bits representing a.
-func (a UMask) Len() int {
+// BitLen returns the minimum number of bits representing a.
+func (a UMask) BitLen() int {
 	return bits.Len(uint(a))
 }
 
@@ -160,7 +170,7 @@ func (a UMask) SetBits(bits ...int) UMask {
 	return a
 }
 
-// RSh returns a bitmask shifted to the right n times.
+// RSh returns a bitmask shifted to the right a given number of bits.
 func (a UMask) RSh(bits int) UMask {
 	return a >> bits
 }
