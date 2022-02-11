@@ -1,25 +1,29 @@
 # UMask
 
-A `UMask` is an aliased `uint` that extends the basic bitmasking operations on a `uint`.
+```go
+go get github.com/nathangreene3/bitmask/umask
+```
+
+A `UMask` is an implementation of a bitmask.
 
 ## Examples
 
 ### Fibonacci numbers
 
 ```go
-    fibs := Zero.SetBits(0, 1, 2)
-    for n := fibs.Count(); n < BitCap; n++ {
-        b := fibs.PrevBit(BitCap)
-        fibs = fibs.SetBit(fibs.PrevBit(b) + b)
-    }
+var fibs UMask = Zero.SetBits(1, 2)
+for n := fibs.Count(); n < BitCap; n++ {
+    var b int = fibs.PrevBit(BitCap)
+    fibs = fibs.SetBit(fibs.PrevBit(b) + b)
+}
 ```
 
-### Primes (Sieve of Eratosthenes)
+### Prime numbers (Sieve of Eratosthenes)
 
 ```go
 var (
-    sqrtBitCap = int(math.Sqrt(float64(BitCap)))
-    primes     = Max.ClrBits(0, 1)
+    sqrtBitCap int   = int(math.Sqrt(float64(BitCap)))
+    primes     UMask = Max.ClrBits(0, 1)
 )
 
 for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
@@ -31,12 +35,12 @@ for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
 }
 ```
 
-### Squares
+### Square numbers
 
 ```go
-squares := One
+var squares UMask = One
 for i := 1; ; i += 2 {
-    s := squares.PrevBit(BitCap) + i
+    var s int = squares.PrevBit(BitCap) + i
     if BitCap <= s {
         break
     }

@@ -1,6 +1,6 @@
 # LMask
 
-An `LMask` is a bitmask of arbitrary precision. The bit capacity may be specified as any non-negative value.
+An `LMask` is an implementation of a bitmask having arbitrary precision.
 
 ## Examples
 
@@ -8,28 +8,28 @@ An `LMask` is a bitmask of arbitrary precision. The bit capacity may be specifie
 
 ```go
 var (
-    fibs     = Zero(4).SetBits(0, 1, 2)
-    maxCount = 50
+	maxCount int    = 50
+	fibs     *LMask = Zero(3).SetBits(1, 2)
 )
 
-for n := fibs.Count(); n < maxCount; n++ {
-    b0 := fibs.PrevBit(fibs.BitCap())
-    b1 := fibs.PrevBit(b0) + b0
-    if fibs.BitCap() <= b1 {
-        fibs.SetBitCap(b1 << 1)
-    }
+for fibs.Count() < maxCount {
+	var b int = fibs.PrevBit(fibs.BitLen())
+	b += fibs.PrevBit(b)
+	if fibs.BitCap() <= b {
+		fibs.SetBitCap(b + 1)
+	}
 
-    fibs.SetBit(b1)
+	fibs.SetBit(b)
 }
 ```
 
-### Primes (Sieve of Eratosthenes)
+### Prime numbers (sieve of Eratosthenes)
 
 ```go
 var (
-    bitCap     = WordBitCap << 2
-    sqrtBitCap = int(math.Sqrt(float64(bitCap)))
-    primes     = Max(bitCap).ClrBits(0, 1)
+    bitCap     int    = WordBitCap << 2
+    sqrtBitCap int    = int(math.Sqrt(float64(bitCap)))
+    primes     *LMask = Max(bitCap).ClrBits(0, 1)
 )
 
 for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
@@ -41,7 +41,7 @@ for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
 }
 ```
 
-### Squares
+### Square numbers
 
 ```go
 var (
@@ -50,7 +50,7 @@ var (
 )
 
 for i := 1; ; i += 2 {
-    s := squares.PrevBit(bitCap) + i
+    var s int = squares.PrevBit(bitCap) + i
     if bitCap <= s {
         break
     }

@@ -3,16 +3,16 @@ package bitmask
 import "math/bits"
 
 const (
-	// BitCap is the maximum number of bits in a uint.
+	// BitCap is the maximum number of bits in a bitmask.
 	BitCap = 32 << (^uint(0) >> 32 & 1) // Source: bits.UintSize
 
-	// Max is the maximum uint.
+	// Max is the maximum bitmask.
 	Max = 1<<BitCap - 1
 )
 
-// ------------------------------------------------------------------------------------
-// Logic functionality
-// ------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// Bitwise functionality
+// -------------------------------------------------------------------------
 
 // And ...
 func And(a, b uint) uint {
@@ -54,9 +54,19 @@ func XOr(a, b uint) uint {
 	return a ^ b
 }
 
-// ------------------------------------------------------------------------------------
-// Additional functionality
-// ------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// Set functionality
+// -------------------------------------------------------------------------
+
+// Bits returns the bits that are set in a bitmask.
+func Bits(a uint) []int {
+	bits := make([]int, 0, BitCap)
+	for bit := NextBit(a, -1); bit < BitCap; bit = NextBit(a, bit) {
+		bits = append(bits, bit)
+	}
+
+	return bits
+}
 
 // Clr ...
 func Clr(a, b uint) uint {
@@ -70,10 +80,8 @@ func ClrBit(a uint, bit int) uint {
 
 // ClrBits ...
 func ClrBits(a uint, bits ...int) uint {
-	if 0 < a {
-		for i := 0; i < len(bits); i++ {
-			a &^= 1 << bits[i]
-		}
+	for i := 0; i < len(bits); i++ {
+		a &^= 1 << bits[i]
 	}
 
 	return a
@@ -125,6 +133,10 @@ func SetBits(a uint, bits ...int) uint {
 
 	return a
 }
+
+// -------------------------------------------------------------------------
+// Helper functionality
+// -------------------------------------------------------------------------
 
 // clamp returns a if n < a, b if b < n, or otherwise n.
 func clamp(n, a, b int) int {

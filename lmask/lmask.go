@@ -12,11 +12,11 @@ const (
 	// WordMax is the maximum word.
 	WordMax = 1<<WordBitCap - 1
 
-	// errUneqBitCaps ...
+	// errUneqBitCaps indicates an operation has been applied on two or more bitmasks in which the bit capacities are required to be equal.
 	errUneqBitCaps = "unequal bit capacities"
 )
 
-// LMask is an arbitrarily sized bitmask.
+// LMask is an implementation of a bitmask having arbitrary precision.
 type LMask struct {
 	bitCap int
 	words  []uint
@@ -88,14 +88,12 @@ func Zero(bitCap int) *LMask {
 // And sets each bit in a if the bit in b is also set. Otherwise, the
 // bit in a is unset.
 func (a *LMask) And(b *LMask) *LMask {
-	if a != b {
-		if a.bitCap != b.bitCap {
-			panic(errUneqBitCaps)
-		}
+	if a.bitCap != b.bitCap {
+		panic(errUneqBitCaps)
+	}
 
-		for i := 0; i < len(a.words); i++ {
-			a.words[i] &= b.words[i]
-		}
+	for i := 0; i < len(a.words); i++ {
+		a.words[i] &= b.words[i]
 	}
 
 	return a

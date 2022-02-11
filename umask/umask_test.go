@@ -5,14 +5,16 @@ import (
 	"testing"
 )
 
-// --------------------------------------------------------------------
-// TODO: FINISH TESTING
-// --------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// TODO: Finish testing
+// -------------------------------------------------------------------------
 
 func TestAnd(t *testing.T) {
-	tests := []struct {
+	type testStruct struct {
 		a, b, exp UMask
-	}{
+	}
+
+	tcs := []testStruct{
 		{
 			a:   Zero.SetBits(0, BitCap-1),
 			b:   Max.ClrBits(0, BitCap-1),
@@ -25,59 +27,59 @@ func TestAnd(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.And(test.b); test.exp != rec {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.And(tc.b); tc.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestBitLen(t *testing.T) {
-	var exp int
-	a := Zero
-	if rec := a.BitLen(); exp != rec {
+	var exp int // Iterates over range [0,BitCap]
+	if rec := Zero.BitLen(); exp != rec {
 		t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
 	}
 
 	for exp++; exp < BitCap; exp++ {
-		a := Zero.SetBits(exp - 1)
-		if rec := a.BitLen(); exp != rec {
+		if rec := Zero.SetBits(exp - 1).BitLen(); exp != rec {
 			t.Errorf("\nexpected %d\nreceived %d\n", exp, rec)
 		}
 	}
 }
 
 func TestBits(t *testing.T) {
-	tests := [][]int{
-		{},
-		{0},
-		{0, BitCap - 1},
+	type testCase struct {
+		bits []int
 	}
 
-	for _, test := range tests {
+	tcs := []testCase{
+		{bits: []int{}},
+		{bits: []int{0}},
+		{bits: []int{0, BitCap - 1}},
+	}
+
+	for _, tc := range tcs {
 		var (
-			rec   = Zero.SetBits(test...).Bits()
-			equal = true
+			rec   = Zero.SetBits(tc.bits...).Bits()
+			equal = len(tc.bits) == len(rec)
 		)
 
-		if len(test) != len(rec) {
-			equal = false
-		}
-
-		for i := 0; i < len(test) && equal; i++ {
-			equal = test[i] == rec[i]
+		for i := 0; i < len(tc.bits) && equal; i++ {
+			equal = tc.bits[i] == rec[i]
 		}
 
 		if !equal {
-			t.Errorf("\nexpected %d\nreceived %d\n", test, rec)
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.bits, rec)
 		}
 	}
 }
 
 func TestClr(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, b, exp UMask
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero,
 			b:   Zero,
@@ -105,18 +107,20 @@ func TestClr(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.Clr(test.b); test.exp != rec {
-			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.Clr(tc.b); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestClrBit(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, exp UMask
 		bit    int
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero.SetBits(),
 			exp: Zero.SetBits(),
@@ -154,17 +158,19 @@ func TestClrBit(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.ClrBit(test.bit); test.exp != rec {
-			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.ClrBit(tc.bit); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestClrBits(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, b, exp UMask
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero,
 			b:   Zero,
@@ -192,18 +198,20 @@ func TestClrBits(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.ClrBits(test.b.Bits()...); test.exp != rec {
-			t.Errorf("\nexpected %d\nreceived %d\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.ClrBits(tc.b.Bits()...); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestLRSh(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, expLeft, expRight UMask
 		left, right          int
-	}{
+	}
+
+	tcs := []testCase{
 		// Shifts less than BitCap
 		{
 			a:        Zero.SetBits(0, BitCap-1),
@@ -244,53 +252,56 @@ func TestLRSh(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.LSh(test.left); test.expLeft != rec {
-			t.Errorf("\nexpected %s\nreceived %s\n", test.expLeft.Fmt(2), rec.Fmt(2))
+	for _, tc := range tcs {
+		if rec := tc.a.LSh(tc.left); tc.expLeft != rec {
+			t.Errorf("\nexpected %s\nreceived %s\n", tc.expLeft.Fmt(2), rec.Fmt(2))
 		}
 
-		if rec := test.a.RSh(test.right); test.expRight != rec {
-			t.Errorf("\nexpected %s\nreceived %s\n", test.expRight.Fmt(2), rec.Fmt(2))
+		if rec := tc.a.RSh(tc.right); tc.expRight != rec {
+			t.Errorf("\nexpected %s\nreceived %s\n", tc.expRight.Fmt(2), rec.Fmt(2))
 		}
 	}
 }
 
 func TestNextPrevBit(t *testing.T) {
-	tests := []UMask{
-		Zero,
-		One,
-		Zero.SetBits(0, BitCap-1), // End bits
-		Max.ClrBits(0, BitCap-1),  // Middle bits
-		Max,
-		Zero.SetBits(0, 2, 4, 6, BitCap-8, BitCap-6, BitCap-4, BitCap-2), // Some even bits
-		Zero.SetBits(1, 3, 5, 7, BitCap-7, BitCap-5, BitCap-3, BitCap-1), // Some odd bits
+	type testCase struct {
+		a UMask
 	}
 
-	for _, test := range tests {
+	tcs := []testCase{
+		{a: Zero},
+		{a: One},
+		{a: Zero.SetBits(0, BitCap-1)}, // End bits
+		{a: Max.ClrBits(0, BitCap-1)},  // Middle bits
+		{a: Max},
+		{a: Zero.SetBits(0, 2, 4, 6, BitCap-8, BitCap-6, BitCap-4, BitCap-2)}, // Some even bits
+		{a: Zero.SetBits(1, 3, 5, 7, BitCap-7, BitCap-5, BitCap-3, BitCap-1)}, // Some odd bits
+	}
+
+	for _, tc := range tcs {
 		for i := 0; i < BitCap; i++ {
-			if test.MasksBit(i) {
-				if rec := test.NextBit(i - 1); i != rec {
+			if tc.a.MasksBit(i) {
+				if rec := tc.a.NextBit(i - 1); i != rec {
 					t.Errorf("\nexpected next bit to be %d\nreceived next bit %d\n", i, rec)
 				}
 
-				if rec := test.PrevBit(i + 1); i != rec {
+				if rec := tc.a.PrevBit(i + 1); i != rec {
 					t.Errorf("\nexpected previous bit to be %d\nreceived next bit %d\n", i, rec)
 				}
 			} else {
-				if rec := test.NextBit(i - 1); i == rec {
+				if rec := tc.a.NextBit(i - 1); i == rec {
 					t.Errorf("\nexpected next bit to NOT be %d\nreceived next bit %d\n", i, rec)
 				}
 
-				if rec := test.PrevBit(i + 1); i == rec {
+				if rec := tc.a.PrevBit(i + 1); i == rec {
 					t.Errorf("\nexpected previous bit to NOT be %d\nreceived next bit %d\n", i, rec)
 				}
 			}
 		}
 
 		{
-			exp := test
-			rec := Zero
-			for i := test.NextBit(-1); i < BitCap; i = test.NextBit(i) {
+			exp, rec := tc.a, Zero
+			for i := tc.a.NextBit(-1); i < BitCap; i = tc.a.NextBit(i) {
 				rec = rec.SetBit(i)
 			}
 
@@ -300,9 +311,8 @@ func TestNextPrevBit(t *testing.T) {
 		}
 
 		{
-			exp := Zero
-			rec := test
-			for i := test.PrevBit(BitCap); -1 < i; i = test.PrevBit(i) {
+			exp, rec := Zero, tc.a
+			for i := tc.a.PrevBit(BitCap); -1 < i; i = tc.a.PrevBit(i) {
 				rec = rec.ClrBit(i)
 			}
 
@@ -314,26 +324,30 @@ func TestNextPrevBit(t *testing.T) {
 }
 
 func TestNot(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, exp UMask
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero.SetBits(0, BitCap-1),
 			exp: Max.ClrBits(0, BitCap-1),
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.Not(); test.exp != rec {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.Not(); tc.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestOr(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, b, exp UMask
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero.SetBits(0, BitCap-1),
 			b:   Max.ClrBits(0, BitCap-1),
@@ -341,17 +355,19 @@ func TestOr(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.Or(test.b); test.exp != rec {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.Or(tc.b); tc.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", tc.exp, rec)
 		}
 	}
 }
 
 func TestXOr(t *testing.T) {
-	tests := []struct {
+	type testCase struct {
 		a, b, exp UMask
-	}{
+	}
+
+	tcs := []testCase{
 		{
 			a:   Zero.SetBits(0, BitCap-1),
 			b:   Max.ClrBits(0, BitCap-1),
@@ -364,19 +380,39 @@ func TestXOr(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		if rec := test.a.XOr(test.b); test.exp != rec {
-			t.Errorf("\nexpected %v\nreceived %v\n", test.exp, rec)
+	for _, tc := range tcs {
+		if rec := tc.a.XOr(tc.b); tc.exp != rec {
+			t.Errorf("\nexpected %v\nreceived %v\n", tc.exp, rec)
 		}
 	}
 }
 
-// --------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // Applications
-// --------------------------------------------------------------------
+// -------------------------------------------------------------------------
 
-func TestFactor(t *testing.T) {
-	gcd := func(a, b int) int {
+func TestDivisors(t *testing.T) {
+	// gcd returns the largest divisor of two given numbers.
+	var gcd = func(a, b int) int {
+		switch {
+		case a == 0:
+			if b == 0 {
+				panic("gcd(0,0) is undefined")
+			}
+
+			return b
+		case b == 0:
+			return a
+		}
+
+		if a < 0 {
+			a = -a
+		}
+
+		if b < 0 {
+			b = -b
+		}
+
 		for 0 < b {
 			a, b = b, a%b
 		}
@@ -384,36 +420,47 @@ func TestFactor(t *testing.T) {
 		return a
 	}
 
-	n0, n1, dn := 0, BitCap, 1
+	var n0, n1, dn int = 1, BitCap, 1
 	for n := n0; n <= n1; n += dn {
+		// -----------------------------------------------------------------
+		// For any a on range [1,n], we search for b such that a*b = n.
+		// While a <= b, we iterate computing d = a*b until d = n. When
+		// d = n, we set bits a and b in the bitmask as divisors of n. We
+		// then increment a, decrement b, and increment d by b-a+1. If
+		// d < n, then we increment a and increment d by b instead of
+		// recomputing d as a*b. If n < d, then we decrement b and decrement
+		// d by a for the same reason. If b < a, then we have run through
+		// all possible divisors and hault.
+		// -----------------------------------------------------------------
+
 		var (
-			factors = Zero.SetBits(1, n)
-			i, j    = 2, n >> 1
-			d       = i * j
+			divisors UMask = Zero
+			a, b     int   = 1, n
+			d        int   = n // a*b
 		)
 
-		for i <= j {
+		for a <= b {
 			switch {
 			case d < n:
-				i++
-				d += j
+				a++
+				d += b
 			case n < d:
-				j--
-				d -= i
+				b--
+				d -= a
 			default:
-				factors = factors.SetBits(i, j)
-				i++
-				j--
-				d += j - i + 1
+				divisors = divisors.SetBits(a, b)
+				a++
+				b--
+				d += b - a + 1
 			}
 		}
 
 		for m := 0; m <= n; m++ {
 			if gcd(m, n) == m {
-				if !factors.MasksBit(m) {
+				if !divisors.MasksBit(m) {
 					t.Errorf("\nexpected %d to be set\n", m)
 				}
-			} else if factors.MasksBit(m) {
+			} else if divisors.MasksBit(m) {
 				t.Errorf("\nexpected %d to not be set\n", m)
 			}
 		}
@@ -421,9 +468,16 @@ func TestFactor(t *testing.T) {
 }
 
 func TestFibonacciNumbers(t *testing.T) {
-	fibs := Zero.SetBits(0, 1, 2)
+	// ---------------------------------------------------------------------
+	// Given a(0) = a(1) = 1, the nth Fibonacci number is defined as
+	// a(n) := a(n-2) + a(n-1). Initializing the bitmask with bits 1 and 2
+	// set, we can then get the largest set bit a(n-1) add it to the
+	// next largest set bit a(n-2) and set the result as a(n).
+	// ---------------------------------------------------------------------
+
+	var fibs UMask = Zero.SetBits(1, 2)
 	for n := fibs.Count(); n < BitCap; n++ {
-		b := fibs.PrevBit(BitCap)
+		var b int = fibs.PrevBit(BitCap)
 		fibs = fibs.SetBit(fibs.PrevBit(b) + b)
 	}
 
@@ -435,11 +489,21 @@ func TestFibonacciNumbers(t *testing.T) {
 }
 
 func TestPrimes(t *testing.T) {
+	// ---------------------------------------------------------------------
 	// Sieve of Eratosthenes
+	// ---------------------------------------------------------------------
+	// We begin by setting a bitmask to the largest value possible and
+	// imediately clear zero and one as trivial cases. We then iterate from
+	// two up to and including the square-root of the bit capacity. With
+	// each iteration, we check if the current value p is prime. If it is
+	// prime, it will be in the bitmask and we can then iterate again for
+	// each k from p^2 up to the bit capacity clearing each bit k. We then
+	// update p as the next set bit in the bitmask.
+	// ---------------------------------------------------------------------
 
 	var (
-		sqrtBitCap = int(math.Sqrt(float64(BitCap)))
-		primes     = Max.ClrBits(0, 1)
+		sqrtBitCap int   = int(math.Sqrt(float64(BitCap)))
+		primes     UMask = Max.ClrBits(0, 1)
 	)
 
 	for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
@@ -451,7 +515,7 @@ func TestPrimes(t *testing.T) {
 	}
 
 	// isPrime is a simple method determining if a number is prime or not.
-	isPrime := func(n int) bool {
+	var isPrime = func(n int) bool {
 		if n < 2 {
 			return false
 		}
@@ -477,18 +541,38 @@ func TestPrimes(t *testing.T) {
 }
 
 func TestSquares(t *testing.T) {
-	squares := One
-	for i := 1; ; i += 2 {
-		s := squares.PrevBit(BitCap) + i
+	// ---------------------------------------------------------------------
+	// We generate squares exploiting the following theorem.
+	//
+	// 	An integer s is a square number if and only if for some odd integer
+	//  n, we have s = 1+3+5+...+n.
+	//
+	// An odd integer n is always of the form 2m+1 for each integer
+	// m = 0,1,2,..., so define S(m) = 1+3+5+...+(2m+1). We get the
+	// recursive relation S(m-1) + (2m+1) = S(m). Beginning with n = 2*0+1,
+	// we set each square bit S(m) in the bitmask by finding the largest
+	// set bit, a square S(m-1), then adding n = 2m+1 to it. We never have
+	// to track the index m due to the recurrence relation, but the next
+	// index m to be set is always equal to the current bitmask count.
+	// Similarly, the current largest index m set in the bitmask is the
+	// bitmask count minus one.
+	// ---------------------------------------------------------------------
+
+	var squares UMask = One                                            // S(0) := 2*0 + 1
+	t.Logf("S(%d) = %d\n", squares.Count()-1, squares.PrevBit(BitCap)) // Prints S(0)
+
+	for n := 1; ; n += 2 {
+		var s int = squares.PrevBit(BitCap) + n // S(m) = S(m-1) + (2m+1)
 		if BitCap <= s {
 			break
 		}
 
+		t.Logf("S(%d) = %d\n", squares.Count(), s) // Prints S(m), which has not been set in the bitmask yet
 		squares = squares.SetBit(s)
 	}
 
-	isSquare := func(n int) bool {
-		r := int(math.Sqrt(float64(n)))
+	var isSquare = func(n int) bool {
+		var r int = int(math.Sqrt(float64(n)))
 		return n == r*r
 	}
 
@@ -503,6 +587,10 @@ func TestSquares(t *testing.T) {
 	}
 }
 
+// -------------------------------------------------------------------------
+// Benchmarks
+// -------------------------------------------------------------------------
+
 func BenchmarkPrimes(b *testing.B) {
 	benchmarkPrimes(b)
 	benchmarkPrimesNextBit(b)
@@ -516,7 +604,7 @@ func benchmarkPrimes(b *testing.B) bool {
 		)
 
 		for i := 0; i < b.N; i++ {
-			primes = Max.ClrBit(0).ClrBit(1)
+			primes = Max.ClrBits(0, 1)
 			sqrtBitCap = int(math.Sqrt(float64(BitCap)))
 			for p := 2; p <= sqrtBitCap; p++ {
 				if primes.MasksBit(p) {
@@ -541,7 +629,7 @@ func benchmarkPrimesNextBit(b *testing.B) bool {
 		)
 
 		for i := 0; i < b.N; i++ {
-			primes = Max.ClrBit(0).ClrBit(1)
+			primes = Max.ClrBits(0, 1)
 			sqrtBitCap = int(math.Sqrt(float64(BitCap)))
 			for p := 2; p <= sqrtBitCap; p = primes.NextBit(p) {
 				if primes.MasksBit(p) {
