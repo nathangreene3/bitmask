@@ -58,12 +58,17 @@ func FromJSON(s string) (*LMask, error) {
 // FromWords returns a bitmask set with a given list of uints. The bit
 // capacity will be the number of words times the word bit capacity.
 func FromWords(words ...uint) *LMask {
-	return &LMask{bitCap: len(words) * WordBitCap, words: append(make([]uint, 0, len(words)), words...)}
+	a := LMask{
+		bitCap: len(words) * WordBitCap,
+		words:  append(make([]uint, 0, len(words)), words...),
+	}
+
+	return &a
 }
 
 // Max returns a bitmask with all bits set.
 func Max(bitCap int) *LMask {
-	return Zero(bitCap).Not()
+	return Zero(bitCap).SetAll()
 }
 
 // One returns a bitmask with bit zero set.
@@ -240,6 +245,15 @@ func (a *LMask) Bits() []int {
 // Clr unsets each bit in a that is set in b.
 func (a *LMask) Clr(b *LMask) *LMask {
 	return a.AndNot(b)
+}
+
+// ClrAll unsets all bits in a bitmask.
+func (a *LMask) ClrAll() *LMask {
+	for i := 0; i < len(a.words); i++ {
+		a.words[i] = 0
+	}
+
+	return a
 }
 
 // ClrBit unsets a bit.
@@ -455,6 +469,15 @@ func (a *LMask) Set(b *LMask) *LMask {
 	return a.Or(b)
 }
 
+// SetAll sets all bits in a bitmask.
+func (a *LMask) SetAll() *LMask {
+	for k := 0; k < len(a.words); k++ {
+		a.words[k] = WordMax
+	}
+
+	return a.trim()
+}
+
 // SetBit sets a bit in a.
 func (a *LMask) SetBit(bit int) *LMask {
 	k := bit / WordBitCap
@@ -504,6 +527,12 @@ func (a *LMask) SetBits(bits ...int) *LMask {
 // String returns the base-10 integer representation of a bitmask.
 func (a *LMask) String() string {
 	return a.Fmt(10)
+}
+
+func (a *LMask) ToggleBit(bit int) *LMask {
+	k := bit / WordBitCap
+	a.words[k] ^= 1 << (bit - k*WordBitCap)
+	return a
 }
 
 // UnmarshalJSON decodes json-encoded text into a bitmask. If the text
