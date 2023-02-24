@@ -73,7 +73,7 @@ func Clr(a, b uint) uint {
 	return a &^ b
 }
 
-// ClrAll ...
+// ClrAll unsets all bits in a bitmask.
 func ClrAll(a uint) uint {
 	return 0
 }
@@ -125,7 +125,7 @@ func Set(a, b uint) uint {
 	return a | b
 }
 
-// SetAll ...
+// SetAll sets all bits in a bitmask.
 func SetAll(a uint) uint {
 	return Max
 }

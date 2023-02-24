@@ -90,7 +90,7 @@ func (a UMask) Clr(b UMask) UMask {
 	return a &^ b
 }
 
-// ClrAll ...
+// ClrAll unsets all bits in a bitmask.
 func (a UMask) ClrAll() UMask {
 	return 0
 }
@@ -157,7 +157,7 @@ func (a UMask) Set(b UMask) UMask {
 	return a | b
 }
 
-// SetAll ...
+// SetAll sets all bits in a bitmask.
 func (a UMask) SetAll() UMask {
 	return Max
 }
