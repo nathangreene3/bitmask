@@ -90,6 +90,11 @@ func (a UMask) Clr(b UMask) UMask {
 	return a &^ b
 }
 
+// ClrAll ...
+func (a UMask) ClrAll() UMask {
+	return 0
+}
+
 // ClrBit returns a bitmask with the given bit cleared.
 func (a UMask) ClrBit(bit int) UMask {
 	return a &^ (1 << bit)
@@ -150,6 +155,11 @@ func (a UMask) RSh(bits int) UMask {
 // Set returns a bitmask with bits set in a or b.
 func (a UMask) Set(b UMask) UMask {
 	return a | b
+}
+
+// SetAll ...
+func (a UMask) SetAll() UMask {
+	return Max
 }
 
 // SetBit sets a bit in a bitmask.

@@ -5,6 +5,60 @@ import (
 	"testing"
 )
 
+func TestClrAll(t *testing.T) {
+	type testCase struct {
+		a, exp uint
+	}
+
+	tcs := []testCase{
+		{
+			a:   0,
+			exp: 0,
+		},
+		{
+			a:   SetBits(0, 0, BitCap-1),
+			exp: 0,
+		},
+		{
+			a:   Max,
+			exp: 0,
+		},
+	}
+
+	for _, tc := range tcs {
+		if rec := ClrAll(tc.a); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
+		}
+	}
+}
+
+func TestSetAll(t *testing.T) {
+	type testCase struct {
+		a, exp uint
+	}
+
+	tcs := []testCase{
+		{
+			a:   0,
+			exp: Max,
+		},
+		{
+			a:   SetBits(0, 0, BitCap-1),
+			exp: Max,
+		},
+		{
+			a:   Max,
+			exp: Max,
+		},
+	}
+
+	for _, tc := range tcs {
+		if rec := SetAll(tc.a); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
+		}
+	}
+}
+
 // -------------------------------------------------------------------------
 // Applications
 // -------------------------------------------------------------------------

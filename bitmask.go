@@ -73,6 +73,11 @@ func Clr(a, b uint) uint {
 	return a &^ b
 }
 
+// ClrAll ...
+func ClrAll(a uint) uint {
+	return 0
+}
+
 // ClrBit ...
 func ClrBit(a uint, bit int) uint {
 	return a &^ (1 << bit)
@@ -118,6 +123,11 @@ func PrevBit(a uint, bit int) int {
 // Set ...
 func Set(a, b uint) uint {
 	return a | b
+}
+
+// SetAll ...
+func SetAll(a uint) uint {
+	return Max
 }
 
 // SetBit ...

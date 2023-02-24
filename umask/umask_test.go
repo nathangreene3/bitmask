@@ -114,6 +114,33 @@ func TestClr(t *testing.T) {
 	}
 }
 
+func TestClrAll(t *testing.T) {
+	type testCase struct {
+		a, exp UMask
+	}
+
+	tcs := []testCase{
+		{
+			a:   Zero,
+			exp: Zero,
+		},
+		{
+			a:   Zero.SetBits(0, BitCap-1),
+			exp: Zero,
+		},
+		{
+			a:   Max,
+			exp: Zero,
+		},
+	}
+
+	for _, tc := range tcs {
+		if rec := tc.a.ClrAll(); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
+		}
+	}
+}
+
 func TestClrBit(t *testing.T) {
 	type testCase struct {
 		a, exp UMask
@@ -358,6 +385,33 @@ func TestOr(t *testing.T) {
 	for _, tc := range tcs {
 		if rec := tc.a.Or(tc.b); tc.exp != rec {
 			t.Errorf("\nexpected %v\nreceived %v\n", tc.exp, rec)
+		}
+	}
+}
+
+func TestSetAll(t *testing.T) {
+	type testCase struct {
+		a, exp UMask
+	}
+
+	tcs := []testCase{
+		{
+			a:   Zero,
+			exp: Max,
+		},
+		{
+			a:   Zero.SetBits(0, BitCap-1),
+			exp: Max,
+		},
+		{
+			a:   Max,
+			exp: Max,
+		},
+	}
+
+	for _, tc := range tcs {
+		if rec := tc.a.SetAll(); tc.exp != rec {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, rec)
 		}
 	}
 }
