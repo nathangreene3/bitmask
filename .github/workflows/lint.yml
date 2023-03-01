@@ -1,17 +1,31 @@
-name: Lint
+name: Linter
+
 on:
   push:
     branches:
       - main
+    tags:
+      - v*
   pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read # Use with only-new-issues
+
 jobs:
   golangci:
-    name: Lint
+    name: GolangCI-Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: golangci-lint
+
+      - name: Set Up Golang
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run Linter
         uses: golangci/golangci-lint-action@v3
         with:
-          args: --issues-exit-code=0
+          version: latest
           only-new-issues: true
