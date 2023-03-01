@@ -335,6 +335,33 @@ func TestClr(t *testing.T) {
 	}
 }
 
+func TestClrAll(t *testing.T) {
+	type testCase struct {
+		a, exp *LMask
+	}
+
+	tcs := []testCase{
+		{
+			a:   Zero(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   FromBits(4*WordBitCap, 0, 4*WordBitCap-1),
+			exp: Zero(4 * WordBitCap),
+		},
+		{
+			a:   Max(4 * WordBitCap),
+			exp: Zero(4 * WordBitCap),
+		},
+	}
+
+	for _, tc := range tcs {
+		if tc.a.ClrAll(); !tc.exp.Equals(tc.a) {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, tc.a)
+		}
+	}
+}
+
 func TestClrBit(t *testing.T) {
 	type testCase struct {
 		a, exp *LMask
@@ -705,6 +732,33 @@ func TestNextPrevBit(t *testing.T) {
 					t.Errorf("\nexpected %v\nreceived %v\n", exp, rec)
 				}
 			}
+		}
+	}
+}
+
+func TestSetAll(t *testing.T) {
+	type testCase struct {
+		a, exp *LMask
+	}
+
+	tcs := []testCase{
+		{
+			a:   Zero(4 * WordBitCap),
+			exp: Max(4 * WordBitCap),
+		},
+		{
+			a:   FromBits(4*WordBitCap, 0, 4*WordBitCap-1),
+			exp: Max(4 * WordBitCap),
+		},
+		{
+			a:   Max(4 * WordBitCap),
+			exp: Max(4 * WordBitCap),
+		},
+	}
+
+	for _, tc := range tcs {
+		if tc.a.SetAll(); !tc.exp.Equals(tc.a) {
+			t.Errorf("\nexpected %d\nreceived %d\n", tc.exp, tc.a)
 		}
 	}
 }
